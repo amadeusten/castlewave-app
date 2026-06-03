@@ -219,7 +219,7 @@ export default function Home() {
             </button>
 
             <h2 style={displayFont} className="text-2xl font-bold text-white mb-1">RSVP</h2>
-            <p style={uiFont} className="text-white/50 text-sm mb-6">Kindly respond by October 1st.</p>
+            <p style={uiFont} className="text-white/50 text-sm mb-6">We look forward to seeing you!</p>
 
             {status === 'success' ? (
               <div className="text-center py-8">
