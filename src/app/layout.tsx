@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Castlewave",
+  title: "Tenekedes | August 15, 2026",
   description: "An unforgettable event in Miami.",
 };
 
