@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import { applyMonochromeStyle } from '@/lib/mapStyle'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
@@ -141,17 +142,13 @@ export default function WhereToStay() {
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      style: 'mapbox://styles/mapbox/light-v11',
       center: [-80.1918, 25.7617],
       zoom: 11,
     });
 
     map.current.on('load', () => {
-      ['poi-label', 'road-label', 'road-number-shield'].forEach(layer => {
-        if (map.current?.getLayer(layer)) {
-          map.current.setLayoutProperty(layer, 'visibility', 'none');
-        }
-      });
+      applyMonochromeStyle(map.current!);
 
       fetch('/api/properties')
         .then(r => r.json())
