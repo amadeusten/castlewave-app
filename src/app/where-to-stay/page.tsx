@@ -45,7 +45,7 @@ function buildPopupHTML(p: Property): string {
   const badge = `<span style="display:inline-block;padding:2px 10px;border-radius:3px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff;background:${color}">${p.type}</span>`;
   const phone = p.phone ? `<p style="margin:6px 0 0;font-size:13px;color:#555">${p.phone}</p>` : '';
   const website = p.website
-    ? `<a href="${p.website}" target="_blank" rel="noopener noreferrer" style="display:block;margin:6px 0 0;font-size:13px;color:${color};text-decoration:underline;word-break:break-all">${p.website}</a>`
+    ? `<a href="${p.website}" target="_blank" rel="noopener noreferrer" style="display:block;margin:6px 0 0;font-size:13px;color:${color};text-decoration:underline;">${p.type} Link</a>`
     : '';
   const contact = p.contact ? `<p style="margin:6px 0 0;font-size:13px;color:#555">Contact: ${p.contact}</p>` : '';
   const notes = p.notes ? `<p style="margin:8px 0 0;font-size:13px;color:#555;opacity:0.8;font-weight:400;line-height:1.5">${p.notes}</p>` : '';
