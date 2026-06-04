@@ -5,6 +5,17 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
+type Guest = {
+  recordId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  plusOne: string;
+  plusOneName: string;
+  dietaryRestrictions: string;
+  dietDetail: string;
+};
+
 const inputStyle = {
   background: 'rgba(255,255,255,0.06)',
   borderRadius: '6px',
@@ -28,6 +39,16 @@ const emptyForm = {
   dietDetail: '',
 };
 
+function readCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function writeCookie(name: string, value: string, days: number) {
+  const maxAge = days * 24 * 60 * 60;
+  document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${maxAge}; path=/; SameSite=Lax`;
+}
+
 export default function Home() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -36,12 +57,36 @@ export default function Home() {
   const [lat] = useState(25.8026);
   const [zoom] = useState(14);
 
-  const [mapExpanded, setMapExpanded] = useState(false);
+  const [guest, setGuest] = useState<Guest | null>(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
   const [isRSVPOpen, setIsRSVPOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [formData, setFormData] = useState(emptyForm);
+
+  // Resolve guest from ?g= param or existing cookie
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gParam = params.get('g');
+
+    if (gParam) {
+      fetch(`/api/guest?id=${encodeURIComponent(gParam)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then((data: Guest | null) => {
+          if (data) {
+            setGuest(data);
+            writeCookie('cw_guest', JSON.stringify(data), 30);
+          }
+        })
+        .catch(() => null);
+    } else {
+      const raw = readCookie('cw_guest');
+      if (raw) {
+        try { setGuest(JSON.parse(raw)); } catch { /* malformed cookie */ }
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
@@ -86,6 +131,16 @@ export default function Home() {
   }, [isRSVPOpen, closeRSVP]);
 
   const openRSVP = () => {
+    setFormData(guest ? {
+      ...emptyForm,
+      firstName: guest.firstName,
+      lastName: guest.lastName,
+      email: guest.email,
+      plusOne: guest.plusOne || 'No',
+      plusOneName: guest.plusOneName || '',
+      dietaryRestrictions: guest.dietaryRestrictions || 'No',
+      dietDetail: guest.dietDetail || '',
+    } : emptyForm);
     setIsClosing(false);
     setIsRSVPOpen(true);
   };
@@ -102,7 +157,7 @@ export default function Home() {
       const res = await fetch('/api/rsvp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, recordId: guest?.recordId }),
       });
       setStatus(res.ok ? 'success' : 'error');
     } catch {
@@ -112,10 +167,19 @@ export default function Home() {
     }
   };
 
+  const openMap = () => {
+    setIsMapOpen(prev => {
+      const next = !prev;
+      if (next) setTimeout(() => map.current?.resize(), 260);
+      return next;
+    });
+  };
+
   const ctaButtons = [
     { label: 'WHAT TO PLAN FOR', onClick: undefined as (() => void) | undefined },
     { label: 'RSVP', onClick: openRSVP },
     { label: 'WHERE TO STAY', onClick: undefined as (() => void) | undefined },
+    { label: 'THE AREA', onClick: openMap },
   ];
 
   return (
@@ -126,65 +190,70 @@ export default function Home() {
         style={{ background: 'linear-gradient(to top, #191b25 27%, #131417 91%)' }}
         className="flex flex-col items-center justify-center text-center px-6 py-24 min-h-[60vh]"
       >
-        <p className="font-display text-white font-bold text-xl md:text-2xl tracking-wide">
-          Once upon a night in Miami
-        </p>
+        <div className="flex flex-col items-center gap-6">
+          <p className="font-display text-white font-bold text-xl md:text-2xl tracking-wide" aria-live="polite">
+            Welcome{guest?.firstName ? ` ${guest.firstName}` : ''}
+          </p>
+          <p className="font-ui text-white text-sm uppercase" style={{ letterSpacing: '1px' }}>
+            {guest?.plusOneName
+              ? `You and ${guest.plusOneName} are cordially invited to join us for`
+              : 'You are cordially invited to join us for'}
+          </p>
+          <p className="font-display text-white font-bold text-xl md:text-2xl tracking-wide">
+            Once upon a night in Miami
+          </p>
+        </div>
 
-        <img src="/CD_logo.svg" alt="Castlewave" className="w-[200px] md:w-[280px] mx-auto my-16" />
+        <img src="/CD_logo.svg" alt="Castlewave" className="w-[200px] md:w-[280px] my-16" />
 
         <p className="font-display text-white text-xl md:text-2xl tracking-wide">
           August 15, 2026
         </p>
       </section>
 
-      {/* CTA Buttons */}
-      <section className="flex flex-col md:flex-row items-center justify-center gap-4 px-6 pt-10 pb-20">
-        {ctaButtons.map(({ label, onClick }) => (
-          <button
-            key={label}
-            onClick={onClick}
-            style={{
-              background: '#191b25',
-              borderRadius: '6px',
-              height: '75px',
-              minWidth: '279px',
-              letterSpacing: '1px',
-              border: '1px solid rgba(255,255,255,0.15)',
-            }}
-            className="font-ui w-full md:w-auto text-white font-bold uppercase text-sm px-8 transition-opacity duration-150 hover:opacity-70 cursor-pointer"
-          >
-            {label}
-          </button>
-        ))}
-      </section>
-
-      {/* The Area */}
-      <section className="px-6 pb-24 w-full max-w-[1375px] mx-auto">
-        <h2 className="font-display text-xl md:text-2xl font-bold text-white mb-6 tracking-wide text-center">
-          THE AREA
-        </h2>
-        <div
-          className="mx-auto w-full"
-          style={{
-            maxWidth: mapExpanded ? '869px' : '435px',
-            transition: 'max-width 0.35s ease',
-          }}
-        >
-          <div
-            style={{ borderRadius: '6px', overflow: 'hidden' }}
-            className="relative w-full h-[400px] md:h-[480px]"
-          >
-            <div ref={mapContainer} className="w-full h-full" />
-            {!mapExpanded && (
-              <div
-                className="absolute inset-0 z-10 cursor-pointer"
-                onClick={() => {
-                  setMapExpanded(true);
-                  setTimeout(() => map.current?.resize(), 370);
+      {/* CTA Buttons + inline map */}
+      <section className="flex flex-col items-center px-6 pt-10 pb-20">
+        {/* Outer wrapper: full-width on mobile, shrinks to button row width on desktop */}
+        <div className="flex flex-col w-full md:w-fit md:mx-auto">
+          <div className="flex flex-col md:flex-row gap-4">
+            {ctaButtons.map(({ label, onClick }) => (
+              <button
+                key={label}
+                onClick={onClick}
+                style={{
+                  background: '#191b25',
+                  borderRadius: '6px',
+                  height: '75px',
+                  minWidth: '279px',
+                  letterSpacing: '1px',
+                  border: '1px solid rgba(255,255,255,0.15)',
                 }}
-              />
-            )}
+                className="font-ui w-full md:w-auto text-white font-bold uppercase text-sm px-8 transition-opacity duration-150 hover:opacity-70 cursor-pointer"
+              >
+                {label}
+              </button>
+            ))}
           </div>
+
+          {/* Map drawer — inherits width from parent wrapper */}
+          <div className={`map-drawer${isMapOpen ? ' open' : ''}`}>
+          <div style={{ borderRadius: '6px', overflow: 'hidden', height: '100%', position: 'relative' }}>
+            <div ref={mapContainer} className="w-full h-full" />
+            <button
+              onClick={() => setIsMapOpen(false)}
+              className="absolute top-2 right-2 z-10 font-ui text-white/70 hover:text-white text-sm leading-none transition-colors"
+              style={{
+                background: 'rgba(0,0,0,0.45)',
+                borderRadius: '4px',
+                width: '28px',
+                height: '28px',
+              }}
+              aria-label="Close map"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
         </div>
       </section>
 

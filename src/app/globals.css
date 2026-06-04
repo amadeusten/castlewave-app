@@ -50,3 +50,23 @@ body {
 .animate-fade-out {
   animation: fadeOut 0.15s ease-out forwards;
 }
+
+.map-drawer {
+  height: 0;
+  opacity: 0;
+  margin-top: 0;
+  overflow: hidden;
+  transition: height 250ms ease, opacity 250ms ease, margin-top 250ms ease;
+}
+
+.map-drawer.open {
+  height: 300px;
+  opacity: 1;
+  margin-top: 24px;
+}
+
+@media (min-width: 768px) {
+  .map-drawer.open {
+    height: 400px;
+  }
+}
