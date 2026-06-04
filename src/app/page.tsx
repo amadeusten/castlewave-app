@@ -5,9 +5,6 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
-const displayFont = { fontFamily: "'Miedinger', 'Georgia', serif" } as const;
-const uiFont = { fontFamily: "'Open Sauce One', 'Arial Narrow', Arial, sans-serif" } as const;
-
 const inputStyle = {
   background: 'rgba(255,255,255,0.06)',
   borderRadius: '6px',
@@ -129,13 +126,13 @@ export default function Home() {
         style={{ background: 'linear-gradient(to top, #191b25 27%, #131417 91%)' }}
         className="flex flex-col items-center justify-center text-center px-6 py-24 min-h-[60vh]"
       >
-        <p style={displayFont} className="text-white font-bold text-xl md:text-2xl tracking-wide">
+        <p className="font-display text-white font-bold text-xl md:text-2xl tracking-wide">
           Once upon a night in Miami
         </p>
 
         <img src="/CD_logo.svg" alt="Castlewave" className="w-[200px] md:w-[280px] mx-auto my-16" />
 
-        <p style={displayFont} className="text-white text-xl md:text-2xl tracking-wide">
+        <p className="font-display text-white text-xl md:text-2xl tracking-wide">
           August 15, 2026
         </p>
       </section>
@@ -147,7 +144,6 @@ export default function Home() {
             key={label}
             onClick={onClick}
             style={{
-              ...uiFont,
               background: '#191b25',
               borderRadius: '6px',
               height: '75px',
@@ -155,7 +151,7 @@ export default function Home() {
               letterSpacing: '1px',
               border: '1px solid rgba(255,255,255,0.15)',
             }}
-            className="w-full md:w-auto text-white font-bold uppercase text-sm px-8 transition-opacity duration-150 hover:opacity-70 cursor-pointer"
+            className="font-ui w-full md:w-auto text-white font-bold uppercase text-sm px-8 transition-opacity duration-150 hover:opacity-70 cursor-pointer"
           >
             {label}
           </button>
@@ -164,10 +160,7 @@ export default function Home() {
 
       {/* The Area */}
       <section className="px-6 pb-24 w-full max-w-[1375px] mx-auto">
-        <h2
-          style={displayFont}
-          className="text-xl md:text-2xl font-bold text-white mb-6 tracking-wide text-center"
-        >
+        <h2 className="font-display text-xl md:text-2xl font-bold text-white mb-6 tracking-wide text-center">
           THE AREA
         </h2>
         <div
@@ -218,17 +211,17 @@ export default function Home() {
               ✕
             </button>
 
-            <h2 style={displayFont} className="text-2xl font-bold text-white mb-1">RSVP</h2>
-            <p style={uiFont} className="text-white/50 text-sm mb-6">We look forward to seeing you!</p>
+            <h2 className="font-display text-2xl font-bold text-white mb-1">RSVP</h2>
+            <p className="font-ui text-white/50 text-sm mb-6">We look forward to seeing you!</p>
 
             {status === 'success' ? (
               <div className="text-center py-8">
-                <p style={displayFont} className="text-white text-2xl mb-3">You&apos;re in.</p>
-                <p style={uiFont} className="text-white/50 text-sm mb-8">We can&apos;t wait to see you.</p>
+                <p className="font-display text-white text-2xl mb-3">You&apos;re in.</p>
+                <p className="font-ui text-white/50 text-sm mb-8">We can&apos;t wait to see you.</p>
                 <button
                   onClick={closeRSVP}
-                  style={{ ...uiFont, background: 'rgba(255,255,255,0.08)', borderRadius: '6px', letterSpacing: '1px' }}
-                  className="px-8 py-3 text-white text-xs font-bold uppercase hover:opacity-70 transition-opacity"
+                  style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '6px', letterSpacing: '1px' }}
+                  className="font-ui px-8 py-3 text-white text-xs font-bold uppercase hover:opacity-70 transition-opacity"
                 >
                   Close
                 </button>
@@ -237,7 +230,7 @@ export default function Home() {
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label style={uiFont} className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">First Name</label>
+                    <label className="font-ui block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">First Name</label>
                     <input
                       required type="text" name="firstName"
                       value={formData.firstName} onChange={handleChange}
@@ -246,7 +239,7 @@ export default function Home() {
                     />
                   </div>
                   <div>
-                    <label style={uiFont} className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Last Name</label>
+                    <label className="font-ui block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Last Name</label>
                     <input
                       required type="text" name="lastName"
                       value={formData.lastName} onChange={handleChange}
@@ -257,7 +250,7 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label style={uiFont} className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Email</label>
+                  <label className="font-ui block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Email</label>
                   <input
                     required type="email" name="email"
                     value={formData.email} onChange={handleChange}
@@ -267,7 +260,7 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label style={uiFont} className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Attendance</label>
+                  <label className="font-ui block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Attendance</label>
                   <select
                     name="attending" value={formData.attending} onChange={handleChange}
                     style={selectStyle}
@@ -282,7 +275,7 @@ export default function Home() {
                   <>
                     <div className="grid grid-cols-3 gap-4 items-end">
                       <div className="col-span-1">
-                        <label style={uiFont} className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Plus One?</label>
+                        <label className="font-ui block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Plus One?</label>
                         <select
                           name="plusOne" value={formData.plusOne} onChange={handleChange}
                           style={selectStyle}
@@ -294,7 +287,7 @@ export default function Home() {
                       </div>
                       {formData.plusOne === 'Yes' && (
                         <div className="col-span-2">
-                          <label style={uiFont} className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Guest Name</label>
+                          <label className="font-ui block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Guest Name</label>
                           <input
                             required type="text" name="plusOneName"
                             value={formData.plusOneName} onChange={handleChange}
@@ -306,7 +299,7 @@ export default function Home() {
                     </div>
 
                     <div>
-                      <label style={uiFont} className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Dietary Restrictions?</label>
+                      <label className="font-ui block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Dietary Restrictions?</label>
                       <select
                         name="dietaryRestrictions" value={formData.dietaryRestrictions} onChange={handleChange}
                         style={selectStyle}
@@ -328,19 +321,18 @@ export default function Home() {
                 )}
 
                 {status === 'error' && (
-                  <p style={uiFont} className="text-red-400 text-sm text-center">Something went wrong. Please try again.</p>
+                  <p className="font-ui text-red-400 text-sm text-center">Something went wrong. Please try again.</p>
                 )}
 
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   style={{
-                    ...uiFont,
                     background: 'rgba(255,255,255,0.1)',
                     borderRadius: '6px',
                     letterSpacing: '1px',
                   }}
-                  className="w-full py-4 text-white font-bold uppercase text-sm transition-opacity hover:opacity-70 disabled:opacity-40"
+                  className="font-ui w-full py-4 text-white font-bold uppercase text-sm transition-opacity hover:opacity-70 disabled:opacity-40"
                 >
                   {isSubmitting ? 'Submitting...' : 'Confirm RSVP'}
                 </button>

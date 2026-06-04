@@ -2,7 +2,15 @@
 
 @font-face {
   font-family: 'Miedinger';
-  src: url('/fonts/miedinger-bold.woff2') format('woff2');
+  src: url('/fonts/MiedingerBold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OpenSauceOne';
+  src: url('/fonts/OpenSauceOne-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -16,6 +24,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --font-display: 'Miedinger', sans-serif;
+  --font-ui: 'OpenSauceOne', sans-serif;
 }
 
 body {
