@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
@@ -175,10 +176,10 @@ export default function Home() {
     });
   };
 
-  const ctaButtons = [
-    { label: 'WHAT TO PLAN FOR', onClick: undefined as (() => void) | undefined },
+  const ctaButtons: { label: string; onClick?: () => void; href?: string }[] = [
+    { label: 'WHAT TO PLAN FOR' },
     { label: 'RSVP', onClick: openRSVP },
-    { label: 'WHERE TO STAY', onClick: undefined as (() => void) | undefined },
+    { label: 'WHERE TO STAY', href: '/where-to-stay' },
     { label: 'THE AREA', onClick: openMap },
   ];
 
@@ -216,23 +217,26 @@ export default function Home() {
         {/* Outer wrapper: full-width on mobile, shrinks to button row width on desktop */}
         <div className="flex flex-col w-full md:w-fit md:mx-auto">
           <div className="flex flex-col md:flex-row gap-4">
-            {ctaButtons.map(({ label, onClick }) => (
-              <button
-                key={label}
-                onClick={onClick}
-                style={{
-                  background: '#191b25',
-                  borderRadius: '6px',
-                  height: '75px',
-                  minWidth: '279px',
-                  letterSpacing: '1px',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                }}
-                className="font-ui w-full md:w-auto text-white font-bold uppercase text-sm px-8 transition-opacity duration-150 hover:opacity-70 cursor-pointer"
-              >
-                {label}
-              </button>
-            ))}
+            {ctaButtons.map(({ label, onClick, href }) => {
+              const sharedStyle = {
+                background: '#191b25',
+                borderRadius: '6px',
+                height: '75px',
+                minWidth: '279px',
+                letterSpacing: '1px',
+                border: '1px solid rgba(255,255,255,0.15)',
+              };
+              const sharedClass = "font-ui flex items-center justify-center w-full md:w-auto text-white font-bold uppercase text-sm px-8 transition-opacity duration-150 hover:opacity-70 cursor-pointer";
+              return href ? (
+                <Link key={label} href={href} style={sharedStyle} className={sharedClass}>
+                  {label}
+                </Link>
+              ) : (
+                <button key={label} onClick={onClick} style={sharedStyle} className={sharedClass}>
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Map drawer — inherits width from parent wrapper */}
