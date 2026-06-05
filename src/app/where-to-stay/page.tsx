@@ -396,8 +396,8 @@ export default function WhereToStay() {
           you decide to stay. We have compiled options for hotels and Airbnbs to help cut down on
           the search. With that said — these are just suggestions for those less familiar with the
           Miami area. If you know where you want to stay, don&apos;t let our suggestions dissuade
-          you! Our hospitality partners have graciously offered a discount for our guests at their
-          respective properties, and those details are included in each listing below.  
+          you! Our hospitality partners have graciously offered discounted rates for our guests, 
+          and those details are included in each listing below.  
           For any additional recommendations, let us know, and we'll be happy to help you narrow your search.
         </p>
         <Link href="/"
