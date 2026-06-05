@@ -51,13 +51,33 @@ function writeCookie(name: string, value: string, days: number) {
   document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${maxAge}; path=/; SameSite=Lax`;
 }
 
+function roundedRectGeoJSON(
+  minLng: number, minLat: number,
+  maxLng: number, maxLat: number,
+  radius: number
+): [number, number][] {
+  const pts: [number, number][] = [];
+  const steps = 8;
+  const arc = (cx: number, cy: number, startAngle: number) => {
+    for (let i = 0; i <= steps; i++) {
+      const a = startAngle + (Math.PI / 2) * (i / steps);
+      pts.push([cx + radius * Math.cos(a), cy + radius * Math.sin(a)]);
+    }
+  };
+  arc(minLng + radius, minLat + radius, Math.PI);        // bottom-left
+  arc(maxLng - radius, minLat + radius, Math.PI * 1.5);  // bottom-right
+  arc(maxLng - radius, maxLat - radius, 0);              // top-right
+  arc(minLng + radius, maxLat - radius, Math.PI / 2);    // top-left
+  pts.push(pts[0]); // close ring
+  return pts;
+}
+
 export default function Home() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
 
-  const [lng] = useState(-80.1993);
-  const [lat] = useState(25.8026);
-  const [zoom] = useState(14);
+  const [lng] = useState(-80.1727827538205);
+  const [lat] = useState(25.850014692533772);
 
   const [guest, setGuest] = useState<Guest | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -95,11 +115,28 @@ export default function Home() {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
-      center: [lng, lat],
-      zoom: zoom,
+      center: [-80.1600, 25.8300],
+      zoom: 11.5,
     });
     map.current.on('load', () => {
       applyMonochromeStyle(map.current!);
+
+      // ── Area-of-interest regions (rounded GeoJSON polygons) ─────────────────
+      const areaRegions: [number, number, number, number, number][] = [
+        [-80.1415, 25.7765, -80.1080, 25.8760, 0.003], // Miami Beach + Surfside
+        [-80.1850, 25.8430, -80.1460, 25.8540, 0.003], // Normandy + North Bay Village
+        [-80.2000, 25.7950, -80.1880, 25.8080, 0.003], // Wynwood
+        [-80.1980, 25.8050, -80.1830, 25.8220, 0.003], // Midtown + Design District
+      ];
+
+      areaRegions.forEach(([minLng, minLat, maxLng, maxLat, r], i) => {
+        const id = `area-region-${i + 1}`;
+        const ring = roundedRectGeoJSON(minLng, minLat, maxLng, maxLat, r);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        map.current!.addSource(id, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } } } as any);
+        map.current!.addLayer({ id: `${id}-fill`, type: 'fill', source: id, paint: { 'fill-color': 'rgba(147, 197, 253, 0.25)' } });
+        map.current!.addLayer({ id: `${id}-line`, type: 'line', source: id, paint: { 'line-color': '#2563eb', 'line-width': 2, 'line-dasharray': [3, 2] } });
+      });
     });
     new mapboxgl.Marker({ color: '#191b25' })
       .setLngLat([lng, lat])
@@ -110,7 +147,7 @@ export default function Home() {
         map.current = null;
       }
     };
-  }, [lng, lat, zoom]);
+  }, [lng, lat]);
 
   const closeRSVP = useCallback(() => {
     setIsClosing(true);
@@ -173,9 +210,9 @@ export default function Home() {
     });
   };
 
-  const ctaButtons: { label: string; onClick?: () => void; href?: string }[] = [
+  const ctaButtons: { label: string; onClick?: () => void; href?: string; hidden?: boolean }[] = [
     { label: 'RSVP', onClick: openRSVP },
-    { label: 'WHAT TO PLAN FOR' },
+    { label: 'WHAT TO PLAN FOR', hidden: true },
     { label: 'WHERE TO STAY', href: '/where-to-stay' },
     { label: 'THE AREA', onClick: openMap },
   ];
@@ -198,7 +235,7 @@ export default function Home() {
               : 'You are cordially invited to join us for'}
           </p>
           <p className="font-display text-white font-bold text-xl md:text-2xl tracking-wide">
-            Once upon a night in Miami
+            the celebration of
           </p>
         </div>
 
@@ -207,6 +244,9 @@ export default function Home() {
         <p className="font-display text-white text-xl md:text-2xl tracking-wide">
           August 15, 2026
         </p>
+        <p className="font-display text-white text-xl md:text-2xl tracking-wide">
+          Miami, FL
+        </p>
       </section>
 
       {/* CTA Buttons + inline map */}
@@ -214,7 +254,7 @@ export default function Home() {
         {/* Outer wrapper: full-width on mobile, shrinks to button row width on desktop */}
         <div className="flex flex-col w-full md:w-fit md:mx-auto">
           <div className="flex flex-col md:flex-row gap-4">
-            {ctaButtons.map(({ label, onClick, href }) => {
+            {ctaButtons.map(({ label, onClick, href, hidden }) => {
               const sharedStyle = {
                 background: '#191b25',
                 borderRadius: '6px',
@@ -222,6 +262,7 @@ export default function Home() {
                 minWidth: '279px',
                 letterSpacing: '1px',
                 border: '1px solid rgba(255,255,255,0.15)',
+                ...(hidden ? { display: 'none' } : {}),
               };
               const sharedClass = "font-ui flex items-center justify-center w-full md:w-auto text-white font-bold uppercase text-sm px-8 transition-opacity duration-150 hover:opacity-70 cursor-pointer";
               return href ? (
