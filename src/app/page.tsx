@@ -174,8 +174,8 @@ export default function Home() {
   };
 
   const ctaButtons: { label: string; onClick?: () => void; href?: string }[] = [
-    { label: 'WHAT TO PLAN FOR' },
     { label: 'RSVP', onClick: openRSVP },
+    { label: 'WHAT TO PLAN FOR' },
     { label: 'WHERE TO STAY', href: '/where-to-stay' },
     { label: 'THE AREA', onClick: openMap },
   ];
