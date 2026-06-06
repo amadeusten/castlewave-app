@@ -376,7 +376,7 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="font-ui block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Attendance</label>
+                  <label className="font-ui block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Will you be attending</label>
                   <select
                     name="attending" value={formData.attending} onChange={handleChange}
                     style={selectStyle}
