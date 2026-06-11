@@ -730,11 +730,11 @@ export default function Home() {
 
   const visibleEvents = EVENTS.filter(event => {
     if (event.id === 'wedding') return true;
-    if (!guest) return true;
-    if (event.id === 'welcome-dinner') return guest.welcomeDinner;
-    if (event.id === 'after-party') return guest.afterParty;
-    if (event.id === 'pizza-party') return guest.pizzaParty;
-    return true;
+    if (!guest) return false;
+    if (event.id === 'welcome-dinner') return guest.welcomeDinner === true;
+    if (event.id === 'after-party') return guest.afterParty === true;
+    if (event.id === 'pizza-party') return guest.pizzaParty === true;
+    return false;
   });
 
   return (
