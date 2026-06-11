@@ -888,7 +888,7 @@ export default function Home() {
                               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                             >Google Maps</a>
                             <a
-                              href={`https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=${encodeURIComponent(event.address)}`}
+                              href={`https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=${encodeURIComponent(event.address)}&dropoff[nickname]=${encodeURIComponent(event.venueName)}`}
                               target="_blank" rel="noopener noreferrer"
                               onClick={() => setGetThereOpenId(null)}
                               style={popoverItemStyle}
