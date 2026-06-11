@@ -9,9 +9,33 @@
 }
 
 @font-face {
+  font-family: 'SpaceMono';
+  src: url('/fonts/SpaceMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SpaceMono';
+  src: url('/fonts/SpaceMono-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'OpenSauceOne';
   src: url('/fonts/OpenSauceOne-Regular.woff2') format('woff2');
   font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OpenSauceOne';
+  src: url('/fonts/OpenSauceOne-Medium.woff2') format('woff2');
+  font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
@@ -34,6 +58,7 @@
   --color-foreground: var(--foreground);
   --font-display: 'Miedinger', sans-serif;
   --font-ui: 'OpenSauceOne', sans-serif;
+  --font-mono: 'SpaceMono', monospace;
 }
 
 body {
@@ -74,6 +99,30 @@ body {
   animation: fadeOut 0.15s ease-out forwards;
 }
 
+.wts-drawer {
+  height: 0;
+  opacity: 0;
+  margin-top: 0;
+  overflow: hidden;
+  transition: height 250ms ease, opacity 250ms ease, margin-top 250ms ease;
+}
+
+.wts-drawer.open {
+  height: 600px;
+  opacity: 1;
+  margin-top: 24px;
+}
+
+@media (min-width: 768px) {
+  .wts-drawer.open {
+    height: 680px;
+  }
+}
+
+.wts-drawer.open.map-expanded {
+  height: calc(70vh + 220px);
+}
+
 .map-drawer {
   height: 0;
   opacity: 0;
@@ -83,13 +132,13 @@ body {
 }
 
 .map-drawer.open {
-  height: 300px;
+  height: 420px;
   opacity: 1;
   margin-top: 24px;
 }
 
 @media (min-width: 768px) {
   .map-drawer.open {
-    height: 400px;
+    height: 520px;
   }
 }

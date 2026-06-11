@@ -33,5 +33,8 @@ export async function GET(request: Request) {
     plusOneName: f['Plus One Name'] ?? '',
     dietaryRestrictions: f['Dietary Restrictions'] ?? 'No',
     dietDetail: f['Diet Detail'] ?? '',
+    welcomeDinner: f['Welcome Dinner'] === 'Yes',
+    afterParty: f['After Party'] === 'Yes',
+    pizzaParty: f['Pizza Party'] === 'Yes',
   });
 }
