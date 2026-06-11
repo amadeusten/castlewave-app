@@ -896,7 +896,7 @@ export default function Home() {
                               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                             >Uber</a>
                             <a
-                              href={`https://lyft.com/ride?destination[latitude]=${event.lat}&destination[longitude]=${event.lng}`}
+                              href={`https://lyft.com/ride?destination[address]=${encodeURIComponent(event.address)}`}
                               target="_blank" rel="noopener noreferrer"
                               onClick={() => setGetThereOpenId(null)}
                               style={popoverItemStyle}
