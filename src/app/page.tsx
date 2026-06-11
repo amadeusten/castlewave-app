@@ -58,7 +58,8 @@ type AccordionEvent = {
   id: string;
   day: string;
   name: string;
-  venue: string;
+  venueName: string;
+  address: string;
   lat: number;
   lng: number;
   time: string;
@@ -76,7 +77,8 @@ const EVENTS: AccordionEvent[] = [
     id: 'welcome-dinner',
     day: 'FRIDAY, AUGUST 14',
     name: 'Welcome Dinner',
-    venue: 'Barcelona Wine Bar 310 NW 25th St, Miami, FL 33127',
+    venueName: 'Barcelona Wine Bar',
+    address: '310 NW 25th St, Miami, FL 33127',
     lat: 25.7934,
     lng: -80.2010,
     time: '6:00 PM – 9:00 PM',
@@ -92,7 +94,8 @@ const EVENTS: AccordionEvent[] = [
     id: 'wedding',
     day: 'SATURDAY, AUGUST 15',
     name: 'Wedding Celebration and Party',
-    venue: 'YaYa 7999 NE Bayshore Ct, Miami, FL 33138',
+    venueName: 'Wedding Venue Name',
+    address: '7999 NE Bayshore Ct, Miami, FL 33138',
     lat: 25.8397,
     lng: -80.1771,
     time: '6:00 PM – 12:00 AM',
@@ -108,7 +111,8 @@ const EVENTS: AccordionEvent[] = [
     id: 'after-party',
     day: 'SATURDAY, AUGUST 15',
     name: 'After Party',
-    venue: '1585 Bay Drive, Miami Beach, FL 33141',
+    venueName: 'After Party Venue Name',
+    address: '1585 Bay Drive, Miami Beach, FL 33141',
     lat: 25.8513,
     lng: -80.1464,
     time: '10:00 PM – 2:00 AM',
@@ -124,7 +128,8 @@ const EVENTS: AccordionEvent[] = [
     id: 'pizza-party',
     day: 'SUNDAY, AUGUST 16',
     name: 'Post-Wedding Lunch',
-    venue: 'Bar Bucce 7220 N Miami Ave, Miami, FL 33150',
+    venueName: 'Bar Bucce',
+    address: '7220 N Miami Ave, Miami, FL 33150',
     lat: 25.8601,
     lng: -80.1930,
     time: '11:00 AM – 3:00 PM',
@@ -147,7 +152,7 @@ function downloadICS(event: AccordionEvent) {
     `DTSTART:${event.icsStart}`,
     `DTEND:${event.icsEnd}`,
     `SUMMARY:${event.name}`,
-    `LOCATION:${event.venue}`,
+    `LOCATION:${event.address}`,
     `DESCRIPTION:${event.notes}`,
     'END:VEVENT',
     'END:VCALENDAR',
@@ -827,6 +832,17 @@ export default function Home() {
                       const isDayOf = todayYear === event.eventYear && todayMonth === event.eventMonth && todayDay === event.eventDay;
                       const btnStyle: React.CSSProperties = { fontSize: '11px', letterSpacing: '1px', color: '#D4A853', border: '1px solid #D4A853', borderRadius: '6px', padding: '6px 12px', background: 'transparent', cursor: 'pointer' };
                       const popoverItemStyle: React.CSSProperties = { display: 'block', padding: '8px 12px', fontSize: '11px', fontFamily: "'SpaceMono', monospace", color: '#ffffff', textDecoration: 'none', background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer' };
+                      const venueCard = (
+                        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <img src="/icons/location.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
+                            <div>
+                              <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Venue</div>
+                              <div className="font-ui text-white" style={{ fontSize: '15px' }}>{event.venueName}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
                       const locationCard = (
                         <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
@@ -834,10 +850,10 @@ export default function Home() {
                             <div style={{ flex: 1 }}>
                               <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Location</div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                <span className="font-ui text-white" style={{ fontSize: '15px' }}>{event.venue}</span>
+                                <span className="font-ui text-white" style={{ fontSize: '15px' }}>{event.address}</span>
                                 <span
                                   role="button"
-                                  onClick={(e) => { e.stopPropagation(); copyVenue(event.venue, event.id); }}
+                                  onClick={(e) => { e.stopPropagation(); copyVenue(event.address, event.id); }}
                                   style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', flexShrink: 0 }}
                                   aria-label="Copy address"
                                 >
@@ -864,7 +880,7 @@ export default function Home() {
                           </button>
                           <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: 0, background: '#191b25', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', overflow: 'hidden', minWidth: '140px', zIndex: 10, opacity: getThereOpenId === event.id ? 1 : 0, pointerEvents: getThereOpenId === event.id ? 'auto' : 'none', transition: 'opacity 150ms ease' }}>
                             <a
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.venue)}`}
+                              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`}
                               target="_blank" rel="noopener noreferrer"
                               onClick={() => setGetThereOpenId(null)}
                               style={popoverItemStyle}
@@ -872,7 +888,7 @@ export default function Home() {
                               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                             >Google Maps</a>
                             <a
-                              href={`https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=${encodeURIComponent(event.venue)}`}
+                              href={`https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=${encodeURIComponent(event.address)}`}
                               target="_blank" rel="noopener noreferrer"
                               onClick={() => setGetThereOpenId(null)}
                               style={popoverItemStyle}
@@ -893,10 +909,11 @@ export default function Home() {
                       if (isDayOf) {
                         return (
                           <div style={{ padding: '0 20px 20px' }}>
+                            {venueCard}
                             {locationCard}
-                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '24px' }}>
                               <a
-                                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.venue)}`}
+                                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="font-mono uppercase"
@@ -914,6 +931,7 @@ export default function Home() {
                       }
                       return (
                         <div style={{ padding: '0 20px 20px' }}>
+                          {venueCard}
                           {locationCard}
 
                           {/* Time */}
@@ -950,12 +968,12 @@ export default function Home() {
                           </div>
 
                           {/* Action buttons */}
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '24px' }}>
                             <button onClick={() => downloadICS(event)} className="font-mono uppercase" style={btnStyle}>
                               Add to Calendar
                             </button>
                             <a
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.venue)}`}
+                              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="font-mono uppercase"
