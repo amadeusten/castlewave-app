@@ -100,7 +100,7 @@ const EVENTS: AccordionEvent[] = [
     lng: -80.17283599937437,
     time: '6:00 PM – 12:00 AM',
     dresscode: 'Cocktail attire; jackets optional.',
-    notes: '10% ceremony; 100% party - yes you read that right; this party requires 110% effort!',
+    notes: 'Celebration required.',
     icsStart: '20260815T180000',
     icsEnd: '20260816T000000',
     eventYear: 2026,
