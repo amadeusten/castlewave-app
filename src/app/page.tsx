@@ -144,12 +144,28 @@ const EVENTS: AccordionEvent[] = [
 ];
 
 function downloadICS(event: AccordionEvent) {
-  const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${event.icsStart}\nDTEND:${event.icsEnd}\nSUMMARY:${event.name}\nLOCATION:${event.address}\nDESCRIPTION:${event.notes}\nEND:VEVENT\nEND:VCALENDAR`;
-  const icsUri = `data:text/calendar;charset=utf8,${encodeURIComponent(icsContent)}`;
+  const icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Castlewave//EN',
+    'BEGIN:VEVENT',
+    `DTSTART:${event.icsStart}`,
+    `DTEND:${event.icsEnd}`,
+    `SUMMARY:${event.name}`,
+    `LOCATION:${event.address}`,
+    `DESCRIPTION:${event.notes}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+  const blob = new Blob([icsContent], { type: 'text/calendar' });
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = icsUri;
-  a.type = 'text/calendar';
-  window.open(icsUri, '_blank');
+  a.href = url;
+  a.download = `${event.name.replace(/\s+/g, '-')}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ── Where to Stay inline section ─────────────────────────────────────────────
