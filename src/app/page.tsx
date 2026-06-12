@@ -888,9 +888,14 @@ export default function Home() {
                               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                             >Google Maps</a>
                             <a
-                              href={`https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=${encodeURIComponent(event.address)}&dropoff[nickname]=${encodeURIComponent(event.venueName)}`}
-                              target="_blank" rel="noopener noreferrer"
-                              onClick={() => setGetThereOpenId(null)}
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const uberUrl = `https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=${encodeURIComponent(event.address)}&dropoff[nickname]=${encodeURIComponent(event.venueName)}`;
+                                console.log('Uber URL:', uberUrl);
+                                window.open(uberUrl, '_blank', 'noopener,noreferrer');
+                                setGetThereOpenId(null);
+                              }}
                               style={popoverItemStyle}
                               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
                               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
