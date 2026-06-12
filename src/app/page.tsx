@@ -93,7 +93,7 @@ const EVENTS: AccordionEvent[] = [
   {
     id: 'wedding',
     day: 'SATURDAY, AUGUST 15',
-    name: 'Wedding Celebration and Party',
+    name: 'Wedding and Party',
     venueName: 'Yaya',
     address: '7999 NE Bayshore Ct, Miami, FL 33138',
     lat: 25.848697500937515,
