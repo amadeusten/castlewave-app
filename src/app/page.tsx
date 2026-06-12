@@ -891,8 +891,7 @@ export default function Home() {
                               href="#"
                               onClick={(e) => {
                                 e.preventDefault();
-                                const uberUrl = `https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=${encodeURIComponent(event.address)}&dropoff[nickname]=${encodeURIComponent(event.venueName)}`;
-                                console.log('Uber URL:', uberUrl);
+                                const uberUrl = `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff=${encodeURIComponent(JSON.stringify({ formatted_address: event.address, nickname: event.venueName }))}`;
                                 window.open(uberUrl, '_blank', 'noopener,noreferrer');
                                 setGetThereOpenId(null);
                               }}
