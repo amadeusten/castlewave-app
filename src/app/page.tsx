@@ -143,30 +143,6 @@ const EVENTS: AccordionEvent[] = [
   },
 ];
 
-function downloadICS(event: AccordionEvent) {
-  const icsContent = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Castlewave//EN',
-    'BEGIN:VEVENT',
-    `DTSTART:${event.icsStart}`,
-    `DTEND:${event.icsEnd}`,
-    `SUMMARY:${event.name}`,
-    `LOCATION:${event.address}`,
-    `DESCRIPTION:${event.notes}`,
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ].join('\r\n');
-  const blob = new Blob([icsContent], { type: 'text/calendar' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${event.name.replace(/\s+/g, '-')}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 // ── Where to Stay inline section ─────────────────────────────────────────────
 
@@ -320,7 +296,6 @@ export default function Home() {
   const [formData, setFormData] = useState(emptyForm);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [calOpenId, setCalOpenId] = useState<string | null>(null);
 
   // WTS state
   const [wtsRouteMode, setWtsRouteMode] = useState(false);
@@ -690,17 +665,6 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [wtsMapExpanded]);
 
-  // Close Add to Calendar popover on outside click
-  useEffect(() => {
-    if (!calOpenId) return;
-    const handler = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest('[data-cal-popover]')) {
-        setCalOpenId(null);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [calOpenId]);
 
   // Scroll button row into view on every section toggle
   useEffect(() => {
@@ -831,33 +795,15 @@ export default function Home() {
                     {(() => {
                       const isDayOf = todayYear === event.eventYear && todayMonth === event.eventMonth && todayDay === event.eventDay;
                       const btnStyle: React.CSSProperties = { fontSize: '11px', letterSpacing: '1px', color: '#D4A853', border: '1px solid #D4A853', borderRadius: '6px', padding: '6px 12px', background: 'transparent', cursor: 'pointer' };
-                      const calPopoverItemStyle: React.CSSProperties = { display: 'block', minHeight: '48px', padding: '14px 20px', fontSize: '13px', fontFamily: "'SpaceMono', monospace", color: '#ffffff', textDecoration: 'none', background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', boxSizing: 'border-box' };
                       const calBtn = (
-                        <div style={{ position: 'relative', display: 'inline-block' }} data-cal-popover="true">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setCalOpenId(calOpenId === event.id ? null : event.id); }}
-                            className="font-mono uppercase"
-                            style={btnStyle}
-                          >
-                            Add to Calendar
-                          </button>
-                          <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: 0, background: '#191b25', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', overflow: 'hidden', minWidth: '200px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px', opacity: calOpenId === event.id ? 1 : 0, pointerEvents: calOpenId === event.id ? 'auto' : 'none', transition: 'opacity 150ms ease' }}>
-                            <button
-                              onClick={() => { downloadICS(event); setCalOpenId(null); }}
-                              style={calPopoverItemStyle}
-                              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-                              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                            >iPhone / Apple</button>
-                            <a
-                              href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${event.icsStart}/${event.icsEnd}&location=${encodeURIComponent(event.address)}&details=${encodeURIComponent(event.notes)}`}
-                              target="_blank" rel="noopener noreferrer"
-                              onClick={() => setCalOpenId(null)}
-                              style={calPopoverItemStyle}
-                              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-                              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                            >Google Calendar</a>
-                          </div>
-                        </div>
+                        <a
+                          href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${event.icsStart}/${event.icsEnd}&location=${encodeURIComponent(event.address)}&details=${encodeURIComponent(event.notes)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="font-mono uppercase"
+                          style={{ ...btnStyle, textDecoration: 'none', display: 'inline-block' }}
+                        >
+                          Add to Calendar
+                        </a>
                       );
                       const venueCard = (
                         <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
