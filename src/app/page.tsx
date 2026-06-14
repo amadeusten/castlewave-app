@@ -132,7 +132,7 @@ const EVENTS: AccordionEvent[] = [
     address: '7220 N Miami Ave, Miami, FL 33150',
     lat: 25.841693321200168,
     lng: -80.19682925035377,
-    time: '11:00 AM – 3:00 PM',
+    time: '1:00 PM – 3:00 PM',
     dresscode: 'Casual',
     notes: 'Come as you are.  Daytime, covered outdoor patio.',
     icsStart: '20260816T110000',
