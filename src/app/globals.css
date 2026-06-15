@@ -80,6 +80,21 @@ body {
   to { opacity: 0; }
 }
 
+@keyframes slideInFromRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes expandCardIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes expandCardOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
 /* Compare mode route pill — strips Mapbox popup chrome */
 .compare-pill .mapboxgl-popup-content {
   background: transparent;

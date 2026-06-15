@@ -46,6 +46,7 @@ export async function GET() {
       contact: f['Contact'] ?? '',
       notes: f['Notes'] ?? '',
       photos,
+      stayCategory: Array.isArray(f['Stay Category']) ? (f['Stay Category'] as string[]) : [],
     };
   });
 

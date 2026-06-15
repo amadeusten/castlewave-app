@@ -36,5 +36,6 @@ export async function GET(request: Request) {
     welcomeDinner: f['Welcome Dinner'] === 'Yes',
     afterParty: f['After Party'] === 'Yes',
     pizzaParty: f['Pizza Party'] === 'Yes',
+    stayCategory: f['Stay Category'] ?? null,
   });
 }

@@ -19,6 +19,7 @@ type Guest = {
   welcomeDinner: boolean;
   afterParty: boolean;
   pizzaParty: boolean;
+  stayCategory: string | null;
 };
 
 const inputStyle = {
@@ -163,12 +164,14 @@ type WtsProperty = {
   lat: number | null; lng: number | null;
   type: string; phone: string; website: string;
   contact: string; notes: string; photos: string[];
+  stayCategory: string[];
 };
 
 type WtsMarkerRef = {
   type: string; el: HTMLElement; id: string;
   lat: number; lng: number; name: string;
   marker: mapboxgl.Marker; popup: mapboxgl.Popup;
+  stayCategory: string[];
 };
 
 const WTS_ALL_TYPES = ['Hotel', 'Airbnb', 'Restaurant', 'Experience', 'Airport', 'Event Venue'];
@@ -304,6 +307,12 @@ export default function Home() {
   const [wtsSelectedTypes, setWtsSelectedTypes] = useState<Set<string>>(() => new Set());
   const [wtsLightbox, setWtsLightbox] = useState<LightboxState>(null);
   const [wtsMapExpanded, setWtsMapExpanded] = useState(false);
+  const [wtsProperties, setWtsProperties] = useState<WtsProperty[]>([]);
+  const [wtsSelectedCard, setWtsSelectedCard] = useState<string | null>(null);
+  const [wtsDetailProperty, setWtsDetailProperty] = useState<WtsProperty | null>(null);
+  const [wtsDetailPhotoIndex, setWtsDetailPhotoIndex] = useState(0);
+  const [wtsExpandedClosing, setWtsExpandedClosing] = useState(false);
+  const [wtsHoveredCard, setWtsHoveredCard] = useState<string | null>(null);
 
   // WTS refs
   const wtsMapContainer = useRef<HTMLDivElement>(null);
@@ -316,6 +325,12 @@ export default function Home() {
   const wtsRemoveRouteRef = useRef<() => void>(() => {});
   const wtsOpenPopupRef = useRef<mapboxgl.Popup | null>(null);
   const wtsDropdownRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const wtsAddHighlightRef = useRef<(lat: number, lng: number) => void>(() => {});
+  const wtsRemoveHighlightRef = useRef<() => void>(() => {});
+  const wtsMarkerClickedRef = useRef(false);
+  const closeWTSPanelRef = useRef<() => void>(() => {});
+  const wtsDetailPropertyIdRef = useRef<string | null>(null);
 
   const copyVenue = (venue: string, id: string) => {
     navigator.clipboard.writeText(venue).then(() => {
@@ -523,9 +538,36 @@ export default function Home() {
           }
         };
 
+        // Marker highlight layer setup
+        const wtsRemoveHighlight = () => {
+          if (!wtsMap.current) return;
+          if (wtsMap.current.getLayer('wts-marker-highlight')) wtsMap.current.removeLayer('wts-marker-highlight');
+          if (wtsMap.current.getSource('wts-marker-highlight')) wtsMap.current.removeSource('wts-marker-highlight');
+        };
+        wtsRemoveHighlightRef.current = wtsRemoveHighlight;
+
+        const wtsAddHighlight = (hlat: number, hlng: number) => {
+          if (!wtsMap.current) return;
+          wtsRemoveHighlight();
+          const r = 0.0005;
+          const ring = roundedRectGeoJSON(hlng - r, hlat - r * 0.8, hlng + r, hlat + r * 0.8, r * 0.3);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          wtsMap.current.addSource('wts-marker-highlight', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } } } as any);
+          wtsMap.current.addLayer({ id: 'wts-marker-highlight', type: 'line', source: 'wts-marker-highlight', paint: { 'line-color': '#D4A853', 'line-width': 2, 'line-dasharray': [3, 2] } });
+        };
+        wtsAddHighlightRef.current = wtsAddHighlight;
+
+        // Close panel on map background click (marker clicks set a flag to suppress this)
+        wtsMap.current!.on('click', () => {
+          if (wtsMarkerClickedRef.current) return;
+          closeWTSPanelRef.current();
+        });
+
         fetch('/api/properties')
           .then(r => r.json())
           .then((properties: WtsProperty[]) => {
+            setWtsProperties(properties);
+
             const bounds = new mapboxgl.LngLatBounds();
             let hasMarkers = false;
             properties.forEach(p => {
@@ -557,24 +599,47 @@ export default function Home() {
                 markerEl.style.transition = 'opacity 250ms ease';
               }
 
-              const markerRef: WtsMarkerRef = { type: p.type, el: markerEl, id: p.id, lat: p.lat, lng: p.lng, name: p.name, marker: markerInstance, popup };
+              const markerRef: WtsMarkerRef = {
+                type: p.type, el: markerEl, id: p.id, lat: p.lat, lng: p.lng,
+                name: p.name, marker: markerInstance, popup,
+                stayCategory: p.stayCategory,
+              };
               wtsMarkerRefs.current.push(markerRef);
 
               markerEl.addEventListener('click', () => {
-                if (!wtsRouteModeRef.current) return;
-                if (!wtsRoutePointARef.current) {
-                  wtsRoutePointARef.current = markerRef;
-                  markerEl.style.boxShadow = '0 0 0 2px #000000';
-                  setWtsRouteStep('select-b');
-                } else if (!wtsRoutePointBRef.current && wtsRoutePointARef.current.id !== p.id) {
-                  wtsRoutePointBRef.current = markerRef;
-                  markerEl.style.boxShadow = '0 0 0 2px #000000';
-                  setWtsRouteStep('drawn');
-                  const fb = new mapboxgl.LngLatBounds();
-                  fb.extend([wtsRoutePointARef.current.lng, wtsRoutePointARef.current.lat]);
-                  fb.extend([p.lng!, p.lat!]);
-                  wtsMap.current!.fitBounds(fb, { padding: 100, duration: 800 });
-                  wtsFetchRoute(wtsRoutePointARef.current, markerRef);
+                // Prevent the map background click handler from closing the panel
+                wtsMarkerClickedRef.current = true;
+                setTimeout(() => { wtsMarkerClickedRef.current = false; }, 50);
+
+                if (wtsRouteModeRef.current) {
+                  if (!wtsRoutePointARef.current) {
+                    wtsRoutePointARef.current = markerRef;
+                    markerEl.style.boxShadow = '0 0 0 2px #000000';
+                    setWtsRouteStep('select-b');
+                  } else if (!wtsRoutePointBRef.current && wtsRoutePointARef.current.id !== p.id) {
+                    wtsRoutePointBRef.current = markerRef;
+                    markerEl.style.boxShadow = '0 0 0 2px #000000';
+                    setWtsRouteStep('drawn');
+                    const fb = new mapboxgl.LngLatBounds();
+                    fb.extend([wtsRoutePointARef.current.lng, wtsRoutePointARef.current.lat]);
+                    fb.extend([p.lng!, p.lat!]);
+                    wtsMap.current!.fitBounds(fb, { padding: 100, duration: 800 });
+                    wtsFetchRoute(wtsRoutePointARef.current, markerRef);
+                  }
+                } else {
+                  if (wtsDetailPropertyIdRef.current === p.id) {
+                    closeWTSPanelRef.current();
+                  } else {
+                    setWtsSelectedCard(p.id);
+                    setWtsDetailProperty(p);
+                    setWtsDetailPhotoIndex(0);
+                    setWtsExpandedClosing(false);
+                    wtsRemoveHighlightRef.current();
+                    wtsAddHighlightRef.current(p.lat!, p.lng!);
+                    setTimeout(() => {
+                      cardRefs.current[p.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 150);
+                  }
                 }
               });
             });
@@ -594,14 +659,17 @@ export default function Home() {
     };
   }, []);
 
-  // WTS filter visibility
+  // WTS filter visibility — type filter + stay category filter
   useEffect(() => {
-    wtsMarkerRefs.current.forEach(({ type, el }) => {
-      const visible = wtsSelectedTypes.size === 0 || wtsSelectedTypes.has(type);
+    const gCat = guest?.stayCategory ?? null;
+    wtsMarkerRefs.current.forEach(({ type, el, stayCategory }) => {
+      const typeOk = wtsSelectedTypes.size === 0 || wtsSelectedTypes.has(type);
+      const catOk = !gCat || stayCategory.length === 0 || stayCategory.includes(gCat);
+      const visible = typeOk && catOk;
       el.style.opacity = visible ? '1' : '0';
       el.style.pointerEvents = visible ? 'auto' : 'none';
     });
-  }, [wtsSelectedTypes]);
+  }, [wtsSelectedTypes, guest]);
 
   // WTS dropdown outside-click
   useEffect(() => {
@@ -665,13 +733,54 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [wtsMapExpanded]);
 
-
   // Scroll button row into view on every section toggle
   useEffect(() => {
     setTimeout(() => {
       buttonRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }, [activeSection]);
+
+  // Clear panel state when WTS section closes
+  useEffect(() => {
+    if (activeSection !== 'stay') {
+      setWtsSelectedCard(null);
+      setWtsDetailProperty(null);
+      setWtsExpandedClosing(false);
+      wtsRemoveHighlightRef.current();
+    }
+  }, [activeSection]);
+
+  const closeWTSPanel = useCallback(() => {
+    setWtsExpandedClosing(true);
+    setWtsSelectedCard(null);
+    wtsRemoveHighlightRef.current();
+    setTimeout(() => {
+      setWtsDetailProperty(null);
+      setWtsExpandedClosing(false);
+    }, 250);
+  }, []);
+
+  // Keep closeWTSPanel accessible to map event handlers via ref
+  useEffect(() => { closeWTSPanelRef.current = closeWTSPanel; }, [closeWTSPanel]);
+
+  // Keep current detail property id accessible to map event handlers (stale closure guard)
+  useEffect(() => { wtsDetailPropertyIdRef.current = wtsDetailProperty?.id ?? null; }, [wtsDetailProperty]);
+
+  const handleCardClick = useCallback((p: WtsProperty) => {
+    if (wtsDetailPropertyIdRef.current === p.id) {
+      closeWTSPanel();
+      return;
+    }
+    setWtsSelectedCard(p.id);
+    setWtsDetailProperty(p);
+    setWtsDetailPhotoIndex(0);
+    setWtsExpandedClosing(false);
+    if (p.lat != null && p.lng != null) {
+      wtsMap.current?.flyTo({ center: [p.lng, p.lat], zoom: 15, duration: 800 });
+      wtsRemoveHighlightRef.current();
+      wtsAddHighlightRef.current(p.lat, p.lng);
+    }
+  }, [closeWTSPanel]);
 
   const openMap = () => {
     setActiveSection(prev => {
@@ -700,6 +809,17 @@ export default function Home() {
     if (event.id === 'pizza-party') return guest.pizzaParty === true;
     return false;
   });
+
+  // Derived property lists respecting stay category + type filters
+  const guestStayCategory = guest?.stayCategory ?? null;
+  const categoryFilteredProperties = guestStayCategory
+    ? wtsProperties.filter(p => p.stayCategory.length === 0 || p.stayCategory.includes(guestStayCategory))
+    : wtsProperties;
+  const CARD_GRID_TYPES = new Set(['Hotel', 'Airbnb']);
+  const displayedProperties = (wtsSelectedTypes.size === 0
+    ? categoryFilteredProperties
+    : categoryFilteredProperties.filter(p => wtsSelectedTypes.has(p.type))
+  ).filter(p => CARD_GRID_TYPES.has(p.type));
 
   return (
     <main style={{ background: '#191b25' }} className="min-h-screen text-white">
@@ -961,7 +1081,14 @@ export default function Home() {
       </section>
 
       {/* WTS inline section */}
-      <section style={{ paddingLeft: wtsMapExpanded ? '20px' : '24px', paddingRight: wtsMapExpanded ? '20px' : '24px', transition: 'padding-left 300ms ease, padding-right 300ms ease' }}>
+      <section
+        style={{
+          position: 'relative',
+          paddingLeft: wtsMapExpanded ? '20px' : '24px',
+          paddingRight: wtsMapExpanded ? '20px' : '24px',
+          transition: 'padding-left 300ms ease, padding-right 300ms ease',
+        }}
+      >
         <div className={`wts-drawer${activeSection === 'stay' ? ' open' : ''}${wtsMapExpanded ? ' map-expanded' : ''}`}>
           {/* Description */}
           <div style={{ maxWidth: '869px', margin: '0 auto', padding: '8px 20px 20px 20px', textAlign: 'left' }}>
@@ -1049,6 +1176,218 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Property card grid — outside wts-drawer, appears below map */}
+        {activeSection === 'stay' && wtsProperties.length > 0 && (
+          <div className="animate-fade-in" style={{ maxWidth: '869px', margin: '0 auto', padding: '0 20px 32px', marginTop: '-16px' }}>
+
+            {/* Expanded detail card — animates in above the grid */}
+            {wtsDetailProperty && (
+              <div
+                style={{
+                  animation: wtsExpandedClosing
+                    ? 'expandCardOut 250ms ease forwards'
+                    : 'expandCardIn 250ms ease forwards',
+                  background: '#191b25',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+                  marginBottom: '16px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Close button */}
+                <button
+                  onClick={closeWTSPanel}
+                  aria-label="Close"
+                  style={{
+                    position: 'absolute', top: '12px', right: '16px', zIndex: 2,
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontFamily: "'SpaceMono', monospace", color: '#fff',
+                    fontSize: '20px', padding: '4px', lineHeight: 1,
+                  }}
+                >×</button>
+
+                <div className="flex flex-col md:flex-row">
+                  {/* Photo column */}
+                  <div
+                    className="flex-none md:w-[360px] relative overflow-hidden"
+                    style={{ minHeight: '260px' }}
+                  >
+                    {wtsDetailProperty.photos.length > 0 ? (
+                      <>
+                        <img
+                          src={wtsDetailProperty.photos[wtsDetailPhotoIndex]}
+                          alt={wtsDetailProperty.name}
+                          onClick={() => setWtsLightbox({ photos: wtsDetailProperty!.photos, index: wtsDetailPhotoIndex })}
+                          className="absolute inset-0 w-full h-full"
+                          style={{ objectFit: 'cover', cursor: 'pointer', display: 'block' }}
+                        />
+                        {wtsDetailProperty.photos.length > 1 && (
+                          <>
+                            <button
+                              onClick={() => setWtsDetailPhotoIndex(i => (i - 1 + wtsDetailProperty!.photos.length) % wtsDetailProperty!.photos.length)}
+                              aria-label="Previous photo"
+                              style={{ position: 'absolute', top: '50%', left: '8px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '3px', width: '28px', height: '28px', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                            >‹</button>
+                            <button
+                              onClick={() => setWtsDetailPhotoIndex(i => (i + 1) % wtsDetailProperty!.photos.length)}
+                              aria-label="Next photo"
+                              style={{ position: 'absolute', top: '50%', right: '8px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '3px', width: '28px', height: '28px', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                            >›</button>
+                            <span style={{ position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '11px', padding: '2px 8px', borderRadius: '3px', whiteSpace: 'nowrap', zIndex: 1 }}>
+                              {wtsDetailPhotoIndex + 1} / {wtsDetailProperty.photos.length}
+                            </span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center" style={{ background: '#131417' }}>
+                        <span style={{ background: wtsTypeColor(wtsDetailProperty.type), color: '#fff', padding: '2px 10px', borderRadius: '3px', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', fontFamily: "'OpenSauceOne', Arial, sans-serif" }}>{wtsDetailProperty.type}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Text content */}
+                  <div className="flex-1 min-w-0" style={{ padding: '20px 24px 24px' }}>
+                    <h2 style={{ color: '#fff', fontSize: '15px', fontWeight: 700, margin: '0 0 6px', lineHeight: 1.3, paddingRight: '36px', fontFamily: "'OpenSauceOne', Arial, sans-serif" }}>
+                      {wtsDetailProperty.name}
+                    </h2>
+                    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '3px', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#fff', background: wtsTypeColor(wtsDetailProperty.type), fontFamily: "'OpenSauceOne', Arial, sans-serif", marginBottom: '14px' }}>
+                      {wtsDetailProperty.type}
+                    </span>
+
+                    {/* Address */}
+                    <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Address</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <span className="font-ui text-white" style={{ fontSize: '14px', flex: 1 }}>{wtsDetailProperty.address}</span>
+                        <span
+                          role="button"
+                          onClick={() => copyVenue(wtsDetailProperty!.address, `exp-${wtsDetailProperty!.id}`)}
+                          style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}
+                          aria-label="Copy address"
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="white" style={{ opacity: 0.55 }}>
+                            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                          </svg>
+                          <span className="font-mono uppercase" style={{ fontSize: '9px', letterSpacing: '1px', color: '#D4A853' }}>
+                            {copiedId === `exp-${wtsDetailProperty.id}` ? 'Copied!' : 'copy'}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Phone */}
+                    {wtsDetailProperty.phone && (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Phone</div>
+                        <div className="font-ui text-white" style={{ fontSize: '14px' }}>{wtsDetailProperty.phone}</div>
+                      </div>
+                    )}
+
+                    {/* Website */}
+                    {wtsDetailProperty.website && (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Website</div>
+                        <a href={wtsDetailProperty.website} target="_blank" rel="noopener noreferrer" className="font-ui" style={{ fontSize: '14px', fontWeight: 700, color: wtsTypeColor(wtsDetailProperty.type), textDecoration: 'underline' }}>{wtsDetailProperty.type} Link</a>
+                      </div>
+                    )}
+
+                    {/* Contact */}
+                    {wtsDetailProperty.contact && (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Contact</div>
+                        <div className="font-ui text-white" style={{ fontSize: '14px' }}>{wtsDetailProperty.contact}</div>
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {wtsDetailProperty.notes && (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Notes</div>
+                        <div className="font-ui text-white" style={{ fontSize: '14px', lineHeight: 1.5 }}>{wtsDetailProperty.notes}</div>
+                      </div>
+                    )}
+
+                    {/* Get Directions */}
+                    <div style={{ marginTop: '16px' }}>
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wtsDetailProperty.address)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono uppercase"
+                        style={{ ...WTS_BTN, textDecoration: 'none', display: 'inline-block' }}
+                      >Get Directions</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Card grid */}
+            <div
+              onClick={closeWTSPanel}
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            >
+                {displayedProperties.map(p => (
+                  <div
+                    key={p.id}
+                    ref={el => { cardRefs.current[p.id] = el; }}
+                    onClick={e => { e.stopPropagation(); handleCardClick(p); }}
+                    onMouseEnter={() => setWtsHoveredCard(p.id)}
+                    onMouseLeave={() => setWtsHoveredCard(null)}
+                    style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      borderRadius: '6px',
+                      border: wtsSelectedCard === p.id
+                        ? '2px solid #D4A853'
+                        : wtsHoveredCard === p.id
+                          ? '1px solid rgba(255,255,255,0.2)'
+                          : '1px solid rgba(255,255,255,0.08)',
+                      cursor: 'pointer',
+                      transition: 'border-color 250ms',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {/* Photo header */}
+                    {p.photos.length > 0 ? (
+                      <img
+                        src={p.photos[0]}
+                        alt={p.name}
+                        style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block', borderRadius: '6px 6px 0 0' }}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', height: '200px', background: '#131417', borderRadius: '6px 6px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ background: wtsTypeColor(p.type), color: '#fff', padding: '2px 10px', borderRadius: '3px', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', fontFamily: "'OpenSauceOne', Arial, sans-serif" }}>{p.type}</span>
+                      </div>
+                    )}
+                    {/* Card body */}
+                    <div style={{ padding: '12px 14px 14px' }}>
+                      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '3px', fontSize: '10px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#fff', background: wtsTypeColor(p.type), fontFamily: "'OpenSauceOne', Arial, sans-serif" }}>{p.type}</span>
+                      <h3 style={{ margin: '6px 0 2px', fontSize: '15px', fontWeight: 700, color: '#fff', fontFamily: "'OpenSauceOne', Arial, sans-serif", lineHeight: 1.3 }}>{p.name}</h3>
+                      <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#D4A853', fontFamily: "'SpaceMono', monospace", lineHeight: 1.4 }}>{p.address}</p>
+                      {p.notes && (
+                        <p style={{
+                          margin: 0,
+                          fontSize: '13px',
+                          color: 'rgba(255,255,255,0.7)',
+                          fontFamily: "'OpenSauceOne', Arial, sans-serif",
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          lineHeight: 1.4,
+                        }}>{p.notes}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+          </div>
+        )}
       </section>
 
       {/* WTS Lightbox */}
