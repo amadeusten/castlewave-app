@@ -125,7 +125,7 @@ body {
 .wts-drawer.open {
   height: 600px;
   opacity: 1;
-  margin-top: 24px;
+  margin-top: 12px;
 }
 
 @media (min-width: 768px) {

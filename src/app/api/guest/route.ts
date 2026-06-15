@@ -37,5 +37,7 @@ export async function GET(request: Request) {
     afterParty: f['After Party'] === 'Yes',
     pizzaParty: f['Pizza Party'] === 'Yes',
     stayCategory: f['Stay Category'] ?? null,
+    salutation: f['Salutation'] ?? null,
+    reasoning: f['Reasoning'] ?? null,
   });
 }

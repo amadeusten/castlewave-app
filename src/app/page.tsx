@@ -20,6 +20,8 @@ type Guest = {
   afterParty: boolean;
   pizzaParty: boolean;
   stayCategory: string | null;
+  salutation: string | null;
+  reasoning: string | null;
 };
 
 const inputStyle = {
@@ -662,14 +664,18 @@ export default function Home() {
   // WTS filter visibility — type filter + stay category filter
   useEffect(() => {
     const gCat = guest?.stayCategory ?? null;
+    console.log('Guest category:', gCat);
+    const visibleMarkers = wtsMarkerRefs.current.filter(({ stayCategory }) =>
+      !gCat || stayCategory.length === 0 || stayCategory.includes(gCat)
+    );
+    console.log('Filtered properties:', visibleMarkers.length);
     wtsMarkerRefs.current.forEach(({ type, el, stayCategory }) => {
       const typeOk = wtsSelectedTypes.size === 0 || wtsSelectedTypes.has(type);
       const catOk = !gCat || stayCategory.length === 0 || stayCategory.includes(gCat);
-      const visible = typeOk && catOk;
-      el.style.opacity = visible ? '1' : '0';
-      el.style.pointerEvents = visible ? 'auto' : 'none';
+      el.style.opacity = (typeOk && catOk) ? '1' : '0';
+      el.style.pointerEvents = (typeOk && catOk) ? 'auto' : 'none';
     });
-  }, [wtsSelectedTypes, guest]);
+  }, [wtsSelectedTypes, guest, wtsProperties]);
 
   // WTS dropdown outside-click
   useEffect(() => {
@@ -1092,6 +1098,13 @@ export default function Home() {
         <div className={`wts-drawer${activeSection === 'stay' ? ' open' : ''}${wtsMapExpanded ? ' map-expanded' : ''}`}>
           {/* Description */}
           <div style={{ maxWidth: '869px', margin: '0 auto', padding: '8px 20px 20px 20px', textAlign: 'left' }}>
+            {guest && (
+              <p className="font-ui text-white text-sm" style={{ letterSpacing: '1px', marginBottom: '12px' }}>
+                {guest.firstName && guest.salutation && guest.reasoning
+                  ? `${guest.firstName} and ${guest.salutation}, we have curated the below options that we think could be a good fit for you ${guest.reasoning}.`
+                  : `${guest.firstName}, we have curated the below options that we think could be a good fit for you.`}
+              </p>
+            )}
             <p className="font-ui text-white text-sm" style={{ letterSpacing: '1px' }}>
               Miami has something for everyone; and the event will be easily accessible from wherever you decide to stay. We have compiled options for hotels and Airbnbs to help cut down on the search. With that said — these are just suggestions for those less familiar with the Miami area. If you know where you want to stay, don&apos;t let our suggestions dissuade you! Our partners have graciously offered a discount for our guests, and those details are included in each listing below.
             </p>
@@ -1179,7 +1192,7 @@ export default function Home() {
 
         {/* Property card grid — outside wts-drawer, appears below map */}
         {activeSection === 'stay' && wtsProperties.length > 0 && (
-          <div className="animate-fade-in" style={{ maxWidth: '869px', margin: '0 auto', padding: '0 20px 32px', marginTop: '-16px' }}>
+          <div className="animate-fade-in" style={{ maxWidth: '869px', margin: '0 auto', padding: '0 20px 32px', marginTop: '-28px' }}>
 
             {/* Expanded detail card — animates in above the grid */}
             {wtsDetailProperty && (
