@@ -664,14 +664,10 @@ export default function Home() {
   // WTS filter visibility — type filter + stay category filter
   useEffect(() => {
     const gCat = guest?.stayCategory ?? null;
-    console.log('Guest category:', gCat);
-    const visibleMarkers = wtsMarkerRefs.current.filter(({ stayCategory }) =>
-      !gCat || stayCategory.length === 0 || stayCategory.includes(gCat)
-    );
-    console.log('Filtered properties:', visibleMarkers.length);
+    const MAP_ALWAYS_SHOW = new Set(['Event Venue', 'Restaurant', 'Airport']);
     wtsMarkerRefs.current.forEach(({ type, el, stayCategory }) => {
       const typeOk = wtsSelectedTypes.size === 0 || wtsSelectedTypes.has(type);
-      const catOk = !gCat || stayCategory.length === 0 || stayCategory.includes(gCat);
+      const catOk = MAP_ALWAYS_SHOW.has(type) || !gCat || stayCategory.includes(gCat);
       el.style.opacity = (typeOk && catOk) ? '1' : '0';
       el.style.pointerEvents = (typeOk && catOk) ? 'auto' : 'none';
     });
@@ -819,7 +815,7 @@ export default function Home() {
   // Derived property lists respecting stay category + type filters
   const guestStayCategory = guest?.stayCategory ?? null;
   const categoryFilteredProperties = guestStayCategory
-    ? wtsProperties.filter(p => p.stayCategory.length === 0 || p.stayCategory.includes(guestStayCategory))
+    ? wtsProperties.filter(p => p.stayCategory.includes(guestStayCategory))
     : wtsProperties;
   const CARD_GRID_TYPES = new Set(['Hotel', 'Airbnb']);
   const displayedProperties = (wtsSelectedTypes.size === 0
