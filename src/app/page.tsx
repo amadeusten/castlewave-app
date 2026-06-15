@@ -853,11 +853,7 @@ export default function Home() {
         <p className="font-display text-white text-xl md:text-2xl tracking-wide">
           Miami, FL
         </p>
-        <p className="font-ui text-white text-sm uppercase" style={{ letterSpacing: '1px' }}>
-          <br />
-          <br />
-          Additional time and venue details to follow
-          </p>
+
       </section>
 
       {/* CTA Buttons + inline map */}
