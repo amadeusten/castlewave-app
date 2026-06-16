@@ -768,6 +768,24 @@ export default function Home() {
   // Keep current detail property id accessible to map event handlers (stale closure guard)
   useEffect(() => { wtsDetailPropertyIdRef.current = wtsDetailProperty?.id ?? null; }, [wtsDetailProperty]);
 
+  // Body scroll lock while overlay is open
+  useEffect(() => {
+    if (wtsDetailProperty) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [wtsDetailProperty]);
+
+  // ESC closes the property overlay
+  useEffect(() => {
+    if (!wtsDetailProperty) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeWTSPanel(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [wtsDetailProperty, closeWTSPanel]);
+
   const handleCardClick = useCallback((p: WtsProperty) => {
     if (wtsDetailPropertyIdRef.current === p.id) {
       closeWTSPanel();
@@ -1098,7 +1116,7 @@ export default function Home() {
               </p>
             )}
             <p className="font-ui text-white text-sm" style={{ letterSpacing: '1px' }}>
-              Miami has something for everyone; and the event will be easily accessible from wherever you decide to stay. We have compiled options for hotels and Airbnbs to help cut down on the search. With that said — these are just suggestions for those less familiar with the Miami area. If you know where you want to stay, don&apos;t let our suggestions dissuade you! Our partners have graciously offered a discount for our guests, and those details are included in each listing below.
+              The event will be easily accessible from wherever you decide to stay. We have compiled options to help your search. With that said — these are suggestions; If you know where you want to stay, don&apos;t let our suggestions dissuade you! Our hospitality friends have graciously offered a discounts for our guests, and those details are included in each listing below.
             </p>
           </div>
 
@@ -1186,154 +1204,8 @@ export default function Home() {
         {activeSection === 'stay' && wtsProperties.length > 0 && (
           <div className="animate-fade-in" style={{ maxWidth: '869px', margin: '0 auto', padding: '0 20px 32px', marginTop: '-28px' }}>
 
-            {/* Expanded detail card — animates in above the grid */}
-            {wtsDetailProperty && (
-              <div
-                style={{
-                  animation: wtsExpandedClosing
-                    ? 'expandCardOut 250ms ease forwards'
-                    : 'expandCardIn 250ms ease forwards',
-                  background: '#191b25',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
-                  marginBottom: '16px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Close button */}
-                <button
-                  onClick={closeWTSPanel}
-                  aria-label="Close"
-                  style={{
-                    position: 'absolute', top: '12px', right: '16px', zIndex: 2,
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    fontFamily: "'SpaceMono', monospace", color: '#fff',
-                    fontSize: '20px', padding: '4px', lineHeight: 1,
-                  }}
-                >×</button>
-
-                <div className="flex flex-col md:flex-row">
-                  {/* Photo column */}
-                  <div
-                    className="flex-none md:w-[360px] relative overflow-hidden"
-                    style={{ minHeight: '260px' }}
-                  >
-                    {wtsDetailProperty.photos.length > 0 ? (
-                      <>
-                        <img
-                          src={wtsDetailProperty.photos[wtsDetailPhotoIndex]}
-                          alt={wtsDetailProperty.name}
-                          onClick={() => setWtsLightbox({ photos: wtsDetailProperty!.photos, index: wtsDetailPhotoIndex })}
-                          className="absolute inset-0 w-full h-full"
-                          style={{ objectFit: 'cover', cursor: 'pointer', display: 'block' }}
-                        />
-                        {wtsDetailProperty.photos.length > 1 && (
-                          <>
-                            <button
-                              onClick={() => setWtsDetailPhotoIndex(i => (i - 1 + wtsDetailProperty!.photos.length) % wtsDetailProperty!.photos.length)}
-                              aria-label="Previous photo"
-                              style={{ position: 'absolute', top: '50%', left: '8px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '3px', width: '28px', height: '28px', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
-                            >‹</button>
-                            <button
-                              onClick={() => setWtsDetailPhotoIndex(i => (i + 1) % wtsDetailProperty!.photos.length)}
-                              aria-label="Next photo"
-                              style={{ position: 'absolute', top: '50%', right: '8px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '3px', width: '28px', height: '28px', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
-                            >›</button>
-                            <span style={{ position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '11px', padding: '2px 8px', borderRadius: '3px', whiteSpace: 'nowrap', zIndex: 1 }}>
-                              {wtsDetailPhotoIndex + 1} / {wtsDetailProperty.photos.length}
-                            </span>
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center" style={{ background: '#131417' }}>
-                        <span style={{ background: wtsTypeColor(wtsDetailProperty.type), color: '#fff', padding: '2px 10px', borderRadius: '3px', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', fontFamily: "'OpenSauceOne', Arial, sans-serif" }}>{wtsDetailProperty.type}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Text content */}
-                  <div className="flex-1 min-w-0" style={{ padding: '20px 24px 24px' }}>
-                    <h2 style={{ color: '#fff', fontSize: '15px', fontWeight: 700, margin: '0 0 6px', lineHeight: 1.3, paddingRight: '36px', fontFamily: "'OpenSauceOne', Arial, sans-serif" }}>
-                      {wtsDetailProperty.name}
-                    </h2>
-                    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '3px', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#fff', background: wtsTypeColor(wtsDetailProperty.type), fontFamily: "'OpenSauceOne', Arial, sans-serif", marginBottom: '14px' }}>
-                      {wtsDetailProperty.type}
-                    </span>
-
-                    {/* Address */}
-                    <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Address</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                        <span className="font-ui text-white" style={{ fontSize: '14px', flex: 1 }}>{wtsDetailProperty.address}</span>
-                        <span
-                          role="button"
-                          onClick={() => copyVenue(wtsDetailProperty!.address, `exp-${wtsDetailProperty!.id}`)}
-                          style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}
-                          aria-label="Copy address"
-                        >
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="white" style={{ opacity: 0.55 }}>
-                            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                          </svg>
-                          <span className="font-mono uppercase" style={{ fontSize: '9px', letterSpacing: '1px', color: '#D4A853' }}>
-                            {copiedId === `exp-${wtsDetailProperty.id}` ? 'Copied!' : 'copy'}
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Phone */}
-                    {wtsDetailProperty.phone && (
-                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                        <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Phone</div>
-                        <div className="font-ui text-white" style={{ fontSize: '14px' }}>{wtsDetailProperty.phone}</div>
-                      </div>
-                    )}
-
-                    {/* Website */}
-                    {wtsDetailProperty.website && (
-                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                        <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Website</div>
-                        <a href={wtsDetailProperty.website} target="_blank" rel="noopener noreferrer" className="font-ui" style={{ fontSize: '14px', fontWeight: 700, color: wtsTypeColor(wtsDetailProperty.type), textDecoration: 'underline' }}>{wtsDetailProperty.type} Link</a>
-                      </div>
-                    )}
-
-                    {/* Contact */}
-                    {wtsDetailProperty.contact && (
-                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                        <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Contact</div>
-                        <div className="font-ui text-white" style={{ fontSize: '14px' }}>{wtsDetailProperty.contact}</div>
-                      </div>
-                    )}
-
-                    {/* Notes */}
-                    {wtsDetailProperty.notes && (
-                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                        <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Notes</div>
-                        <div className="font-ui text-white" style={{ fontSize: '14px', lineHeight: 1.5 }}>{wtsDetailProperty.notes}</div>
-                      </div>
-                    )}
-
-                    {/* Get Directions */}
-                    <div style={{ marginTop: '16px' }}>
-                      <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wtsDetailProperty.address)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono uppercase"
-                        style={{ ...WTS_BTN, textDecoration: 'none', display: 'inline-block' }}
-                      >Get Directions</a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Card grid */}
             <div
-              onClick={closeWTSPanel}
               className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
             >
                 {displayedProperties.map(p => (
@@ -1394,6 +1266,159 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* WTS Property Overlay */}
+      {wtsDetailProperty && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            background: 'rgba(0,0,0,0.85)',
+            animation: wtsExpandedClosing ? 'fadeOut 250ms ease-out forwards' : 'fadeIn 250ms ease-out forwards',
+          }}
+          onClick={closeWTSPanel}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-[90vw] md:w-[calc(100vw-48px)] md:max-w-[869px]"
+            style={{
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              background: '#191b25',
+              borderRadius: '10px',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+              position: 'relative',
+            }}
+          >
+            {/* Close button */}
+            <button
+              onClick={closeWTSPanel}
+              aria-label="Close"
+              style={{
+                position: 'absolute', top: 0, right: 0, zIndex: 2,
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: "'SpaceMono', monospace", color: '#fff',
+                fontSize: '20px', padding: '12px 16px', lineHeight: 1,
+              }}
+            >×</button>
+
+            {/* Photo gallery */}
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '10px 10px 0 0' }}>
+              {wtsDetailProperty.photos.length > 0 ? (
+                <>
+                  <img
+                    src={wtsDetailProperty.photos[wtsDetailPhotoIndex]}
+                    alt={wtsDetailProperty.name}
+                    style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block', borderRadius: '10px 10px 0 0' }}
+                  />
+                  {wtsDetailProperty.photos.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setWtsDetailPhotoIndex(i => (i - 1 + wtsDetailProperty!.photos.length) % wtsDetailProperty!.photos.length)}
+                        aria-label="Previous photo"
+                        style={{ position: 'absolute', top: '50%', left: '6px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '3px', width: '28px', height: '28px', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}
+                      >‹</button>
+                      <button
+                        onClick={() => setWtsDetailPhotoIndex(i => (i + 1) % wtsDetailProperty!.photos.length)}
+                        aria-label="Next photo"
+                        style={{ position: 'absolute', top: '50%', right: '6px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '3px', width: '28px', height: '28px', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}
+                      >›</button>
+                      <span style={{ position: 'absolute', bottom: '6px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '11px', padding: '2px 8px', borderRadius: '3px', whiteSpace: 'nowrap', zIndex: 2 }}>
+                        {wtsDetailPhotoIndex + 1} / {wtsDetailProperty.photos.length}
+                      </span>
+                    </>
+                  )}
+                </>
+              ) : (
+                <div style={{ width: '100%', aspectRatio: '16/9', background: '#131417', borderRadius: '10px 10px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ background: wtsTypeColor(wtsDetailProperty.type), color: '#fff', padding: '2px 10px', borderRadius: '3px', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', fontFamily: "'OpenSauceOne', Arial, sans-serif" }}>{wtsDetailProperty.type}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Property name */}
+            <h2 style={{ color: '#fff', fontSize: '13px', fontWeight: 700, margin: 0, lineHeight: 1.3, padding: '16px 20px 4px', fontFamily: "'OpenSauceOne', Arial, sans-serif" }}>
+              {wtsDetailProperty.name}
+            </h2>
+
+            {/* Type badge */}
+            <div style={{ padding: '0 20px 12px' }}>
+              <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '3px', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#fff', background: wtsTypeColor(wtsDetailProperty.type), fontFamily: "'OpenSauceOne', Arial, sans-serif" }}>
+                {wtsDetailProperty.type}
+              </span>
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+
+            {/* Detail rows */}
+            <div style={{ padding: '0 20px' }}>
+              {/* Address */}
+              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', marginTop: '12px', padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Address</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <span className="font-ui text-white" style={{ fontSize: '13px', flex: 1 }}>{wtsDetailProperty.address}</span>
+                  <span
+                    role="button"
+                    onClick={() => copyVenue(wtsDetailProperty!.address, `ov-${wtsDetailProperty!.id}`)}
+                    style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}
+                    aria-label="Copy address"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="white" style={{ opacity: 0.55 }}>
+                      <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                    </svg>
+                    <span className="font-mono uppercase" style={{ fontSize: '9px', letterSpacing: '1px', color: '#D4A853' }}>
+                      {copiedId === `ov-${wtsDetailProperty.id}` ? 'Copied!' : 'copy'}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Phone */}
+              {wtsDetailProperty.phone && (
+                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Phone</div>
+                  <div className="font-ui text-white" style={{ fontSize: '13px' }}>{wtsDetailProperty.phone}</div>
+                </div>
+              )}
+
+              {/* Website */}
+              {wtsDetailProperty.website && (
+                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Website</div>
+                  <a href={wtsDetailProperty.website} target="_blank" rel="noopener noreferrer" className="font-ui" style={{ fontSize: '13px', fontWeight: 700, color: wtsTypeColor(wtsDetailProperty.type), textDecoration: 'underline' }}>{wtsDetailProperty.type} Link</a>
+                </div>
+              )}
+
+              {/* Contact */}
+              {wtsDetailProperty.contact && (
+                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Contact</div>
+                  <div className="font-ui text-white" style={{ fontSize: '13px' }}>{wtsDetailProperty.contact}</div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {wtsDetailProperty.notes && (
+                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Notes</div>
+                  <div className="font-ui text-white" style={{ fontSize: '13px', lineHeight: 1.5 }}>{wtsDetailProperty.notes}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Get Directions */}
+            <div style={{ margin: '16px 20px 24px' }}>
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wtsDetailProperty.address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono uppercase"
+                style={{ ...WTS_BTN, textDecoration: 'none', display: 'block', textAlign: 'center', padding: '8px 12px' }}
+              >Get Directions</a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* WTS Lightbox */}
       {wtsLightbox && (
