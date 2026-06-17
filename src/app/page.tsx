@@ -628,21 +628,8 @@ export default function Home() {
                     wtsMap.current!.fitBounds(fb, { padding: 100, duration: 800 });
                     wtsFetchRoute(wtsRoutePointARef.current, markerRef);
                   }
-                } else {
-                  if (wtsDetailPropertyIdRef.current === p.id) {
-                    closeWTSPanelRef.current();
-                  } else {
-                    setWtsSelectedCard(p.id);
-                    setWtsDetailProperty(p);
-                    setWtsDetailPhotoIndex(0);
-                    setWtsExpandedClosing(false);
-                    wtsRemoveHighlightRef.current();
-                    wtsAddHighlightRef.current(p.lat!, p.lng!);
-                    setTimeout(() => {
-                      cardRefs.current[p.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }, 150);
-                  }
                 }
+              // Non-route mode: Mapbox handles popup toggle via setPopup — no state changes
               });
             });
             if (hasMarkers) wtsMap.current!.fitBounds(bounds, { padding: 80, maxZoom: 14 });
