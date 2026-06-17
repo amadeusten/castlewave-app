@@ -102,7 +102,7 @@ const EVENTS: AccordionEvent[] = [
     lat: 25.848697500937515,
     lng: -80.17283599937437,
     time: '6:00 PM – 12:00 AM',
-    dresscode: 'Cocktail attire; jackets optional.',
+    dresscode: 'Garden party formal; jackets optional.',
     notes: 'Celebration required.',
     icsStart: '20260815T180000',
     icsEnd: '20260816T000000',
