@@ -146,13 +146,35 @@ const EVENTS: AccordionEvent[] = [
   },
 ];
 
-type GardenPartyImage = { src: string; gender: 'men' | 'women' };
+type StyleGuideImage = { src: string; gender: 'men' | 'women' };
 
-const gardenPartyImages: GardenPartyImage[] = [
+const gardenPartyImages: StyleGuideImage[] = [
   { src: '/images/garden-party/garden-men01.png', gender: 'men' },
   { src: '/images/garden-party/garden-women01.png', gender: 'women' },
   { src: '/images/garden-party/garden-women02.png', gender: 'women' },
 ];
+
+const welcomeDinnerImages: StyleGuideImage[] = [
+  { src: '/images/welcome-dinner/welcome-men01.png', gender: 'men' },
+  { src: '/images/welcome-dinner/welcome-women01.png', gender: 'women' },
+];
+
+const pizzaPartyImages: StyleGuideImage[] = [
+  { src: '/images/pizza-party/pizza-men01.png', gender: 'men' },
+  { src: '/images/pizza-party/pizza-women01.png', gender: 'women' },
+];
+
+const STYLE_GUIDE_IMAGES_BY_EVENT: Record<string, StyleGuideImage[]> = {
+  'wedding': gardenPartyImages,
+  'welcome-dinner': welcomeDinnerImages,
+  'pizza-party': pizzaPartyImages,
+};
+
+const STYLE_GUIDE_LINK_TEXT: Record<string, string> = {
+  'wedding': 'What is garden party formal? Click here',
+  'welcome-dinner': 'What is the dress code? Click here',
+  'pizza-party': 'What is the dress code? Click here',
+};
 
 // ── Where to Stay inline section ─────────────────────────────────────────────
 
@@ -310,6 +332,7 @@ export default function Home() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Style Guide slideshow state
+  const [styleGuideSource, setStyleGuideSource] = useState<StyleGuideImage[]>(gardenPartyImages);
   const [styleGuideOpen, setStyleGuideOpen] = useState(false);
   const [styleGuideGender, setStyleGuideGender] = useState<'all' | 'men' | 'women'>('all');
   const [styleGuideIndex, setStyleGuideIndex] = useState(0);
@@ -355,10 +378,11 @@ export default function Home() {
   };
 
   const styleGuideImages = styleGuideGender === 'all'
-    ? gardenPartyImages
-    : gardenPartyImages.filter(img => img.gender === styleGuideGender);
+    ? styleGuideSource
+    : styleGuideSource.filter(img => img.gender === styleGuideGender);
 
-  const openStyleGuide = () => {
+  const openStyleGuide = (images: StyleGuideImage[]) => {
+    setStyleGuideSource(images);
     setStyleGuideGender('all');
     setStyleGuideIndex(0);
     setStyleGuideOpen(true);
@@ -1060,7 +1084,7 @@ export default function Home() {
                             {event.id === 'wedding' && (
                               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '8px' }}>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); openStyleGuide(); }}
+                                  onClick={(e) => { e.stopPropagation(); openStyleGuide(gardenPartyImages); }}
                                   className="font-mono uppercase"
                                   style={{ ...btnStyle, display: 'inline-block' }}
                                 >
@@ -1095,14 +1119,14 @@ export default function Home() {
                                 <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Dress</div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                                   <span className="font-ui text-white" style={{ fontSize: '15px' }}>{event.dresscode}</span>
-                                  {event.id === 'wedding' && (
+                                  {STYLE_GUIDE_IMAGES_BY_EVENT[event.id] && (
                                     <span
                                       role="button"
-                                      onClick={(e) => { e.stopPropagation(); openStyleGuide(); }}
+                                      onClick={(e) => { e.stopPropagation(); openStyleGuide(STYLE_GUIDE_IMAGES_BY_EVENT[event.id]); }}
                                       className="font-mono uppercase"
                                       style={{ fontSize: '10px', letterSpacing: '1px', color: '#D4A853', cursor: 'pointer' }}
                                     >
-                                      What is garden party formal? Click here
+                                      {STYLE_GUIDE_LINK_TEXT[event.id]}
                                     </span>
                                   )}
                                 </div>
@@ -1145,7 +1169,7 @@ export default function Home() {
                           {event.id === 'wedding' && (
                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '8px' }}>
                               <button
-                                onClick={(e) => { e.stopPropagation(); openStyleGuide(); }}
+                                onClick={(e) => { e.stopPropagation(); openStyleGuide(gardenPartyImages); }}
                                 className="font-mono uppercase"
                                 style={{ ...btnStyle, display: 'inline-block' }}
                               >
