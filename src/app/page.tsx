@@ -102,7 +102,7 @@ const EVENTS: AccordionEvent[] = [
     lat: 25.848697500937515,
     lng: -80.17283599937437,
     time: '6:00 PM – 12:00 AM',
-    dresscode: 'Garden party formal; jackets optional.',
+    dresscode: 'Garden Party Formal',
     notes: 'Celebration required.',
     icsStart: '20260815T180000',
     icsEnd: '20260816T000000',
@@ -146,6 +146,13 @@ const EVENTS: AccordionEvent[] = [
   },
 ];
 
+type GardenPartyImage = { src: string; gender: 'men' | 'women' };
+
+const gardenPartyImages: GardenPartyImage[] = [
+  { src: '/images/garden-party/garden-men01.png', gender: 'men' },
+  { src: '/images/garden-party/garden-women01.png', gender: 'women' },
+  { src: '/images/garden-party/garden-women02.png', gender: 'women' },
+];
 
 // ── Where to Stay inline section ─────────────────────────────────────────────
 
@@ -302,6 +309,12 @@ export default function Home() {
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Style Guide slideshow state
+  const [styleGuideOpen, setStyleGuideOpen] = useState(false);
+  const [styleGuideGender, setStyleGuideGender] = useState<'all' | 'men' | 'women'>('all');
+  const [styleGuideIndex, setStyleGuideIndex] = useState(0);
+  const [styleGuideShareCopied, setStyleGuideShareCopied] = useState(false);
+
   // WTS state
   const [wtsRouteMode, setWtsRouteMode] = useState(false);
   const [wtsRouteStep, setWtsRouteStep] = useState<RouteStep>('idle');
@@ -340,6 +353,60 @@ export default function Home() {
       setTimeout(() => setCopiedId(null), 1500);
     });
   };
+
+  const styleGuideImages = styleGuideGender === 'all'
+    ? gardenPartyImages
+    : gardenPartyImages.filter(img => img.gender === styleGuideGender);
+
+  const openStyleGuide = () => {
+    setStyleGuideGender('all');
+    setStyleGuideIndex(0);
+    setStyleGuideOpen(true);
+  };
+
+  const changeStyleGuideGender = (gender: 'all' | 'men' | 'women') => {
+    setStyleGuideGender(gender);
+    setStyleGuideIndex(0);
+  };
+
+  const shareStyleGuideImage = async () => {
+    const image = styleGuideImages[styleGuideIndex];
+    if (!image) return;
+    const url = `${window.location.origin}${image.src}`;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ url });
+        return;
+      } catch {
+        // fall through to clipboard fallback
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setStyleGuideShareCopied(true);
+      setTimeout(() => setStyleGuideShareCopied(false), 1500);
+    } catch {
+      // clipboard unsupported; nothing more we can do
+    }
+  };
+
+  // ESC closes the style guide slideshow
+  useEffect(() => {
+    if (!styleGuideOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setStyleGuideOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [styleGuideOpen]);
+
+  // Body scroll lock while style guide slideshow is open
+  useEffect(() => {
+    if (styleGuideOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [styleGuideOpen]);
 
 
   // Resolve guest from ?g= param or existing cookie
@@ -990,6 +1057,17 @@ export default function Home() {
                               </a>
                               {calBtn}
                             </div>
+                            {event.id === 'wedding' && (
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '8px' }}>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openStyleGuide(); }}
+                                  className="font-mono uppercase"
+                                  style={{ ...btnStyle, display: 'inline-block' }}
+                                >
+                                  Style Guide
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       }
@@ -1015,7 +1093,19 @@ export default function Home() {
                               <img src="/icons/dress.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
                               <div>
                                 <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Dress</div>
-                                <div className="font-ui text-white" style={{ fontSize: '15px' }}>{event.dresscode}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                  <span className="font-ui text-white" style={{ fontSize: '15px' }}>{event.dresscode}</span>
+                                  {event.id === 'wedding' && (
+                                    <span
+                                      role="button"
+                                      onClick={(e) => { e.stopPropagation(); openStyleGuide(); }}
+                                      className="font-mono uppercase"
+                                      style={{ fontSize: '10px', letterSpacing: '1px', color: '#D4A853', cursor: 'pointer' }}
+                                    >
+                                      What is garden party formal? Click here
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1052,6 +1142,17 @@ export default function Home() {
                             </a>
                             {calBtn}
                           </div>
+                          {event.id === 'wedding' && (
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '8px' }}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openStyleGuide(); }}
+                                className="font-mono uppercase"
+                                style={{ ...btnStyle, display: 'inline-block' }}
+                              >
+                                Style Guide
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
                     })()}
@@ -1421,6 +1522,105 @@ export default function Home() {
             )}
             {wtsLightbox.photos.length > 1 && (
               <button onClick={() => setWTSLightboxIndex((wtsLightbox.index + 1) % wtsLightbox.photos.length)} className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-white flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)', borderRadius: '4px', width: '40px', height: '48px', fontSize: '24px' }} aria-label="Next photo">›</button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Style Guide Slideshow */}
+      {styleGuideOpen && (
+        <div
+          className="fixed inset-0 z-50"
+          style={{ background: 'rgba(0,0,0,0.92)', display: 'flex', flexDirection: 'column', animation: 'fadeIn 250ms ease-out forwards' }}
+          onClick={() => setStyleGuideOpen(false)}
+        >
+          {/* Top bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', flexShrink: 0 }}>
+            <span className="font-display" style={{ color: '#fff', fontSize: '18px', fontWeight: 700 }}>Style Guide</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); shareStyleGuideImage(); }}
+                  className="font-mono uppercase"
+                  style={{ background: 'none', border: 'none', color: '#fff', fontSize: '12px', letterSpacing: '1px', cursor: 'pointer', padding: 0 }}
+                >
+                  Share
+                </button>
+                {styleGuideShareCopied && (
+                  <span
+                    className="font-mono uppercase"
+                    style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '10px', padding: '3px 8px', borderRadius: '3px', whiteSpace: 'nowrap' }}
+                  >
+                    Copied!
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); setStyleGuideOpen(false); }}
+                aria-label="Close style guide"
+                className="font-mono"
+                style={{ background: 'none', border: 'none', color: '#fff', fontSize: '22px', cursor: 'pointer', lineHeight: 1, padding: 0 }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          {/* Gender toggle */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', padding: '4px 20px 20px', flexShrink: 0 }}>
+            {(['all', 'men', 'women'] as const).map(g => (
+              <button
+                key={g}
+                onClick={(e) => { e.stopPropagation(); changeStyleGuideGender(g); }}
+                className="font-mono uppercase"
+                style={{
+                  fontSize: '11px',
+                  letterSpacing: '1px',
+                  padding: '6px 16px',
+                  borderRadius: '20px',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  color: styleGuideGender === g ? '#D4A853' : '#fff',
+                  border: styleGuideGender === g ? '1px solid #D4A853' : '1px solid rgba(255,255,255,0.3)',
+                }}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+
+          {/* Image display */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', minHeight: 0 }}>
+            {styleGuideImages.length > 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setStyleGuideIndex(i => (i - 1 + styleGuideImages.length) % styleGuideImages.length); }}
+                aria-label="Previous image"
+                style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '4px', width: '40px', height: '48px', fontSize: '26px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >‹</button>
+            )}
+            {styleGuideImages[styleGuideIndex] && (
+              <img
+                onClick={(e) => e.stopPropagation()}
+                src={styleGuideImages[styleGuideIndex].src}
+                alt="Garden party style guide"
+                style={{ maxHeight: '70vh', maxWidth: '90vw', objectFit: 'contain', display: 'block' }}
+              />
+            )}
+            {styleGuideImages.length > 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setStyleGuideIndex(i => (i + 1) % styleGuideImages.length); }}
+                aria-label="Next image"
+                style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '4px', width: '40px', height: '48px', fontSize: '26px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >›</button>
+            )}
+            {styleGuideImages.length > 0 && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="font-mono"
+                style={{ color: '#fff', fontSize: '11px', textAlign: 'center', marginTop: '16px' }}
+              >
+                {styleGuideIndex + 1} / {styleGuideImages.length}
+              </div>
             )}
           </div>
         </div>
