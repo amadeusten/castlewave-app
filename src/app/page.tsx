@@ -172,8 +172,8 @@ const STYLE_GUIDE_IMAGES_BY_EVENT: Record<string, StyleGuideImage[]> = {
 
 const STYLE_GUIDE_LINK_TEXT: Record<string, string> = {
   'wedding': 'What is garden party formal? Click here',
-  'welcome-dinner': 'What is the dress code? Click here',
-  'pizza-party': 'What is the dress code? Click here',
+  'welcome-dinner': 'What is the style? Click here',
+  'pizza-party': 'How casual is casual - very casual? Click here',
 };
 
 // ── Where to Stay inline section ─────────────────────────────────────────────
