@@ -115,45 +115,19 @@ body {
 }
 
 .wts-drawer {
-  height: 0;
+  max-height: 0;
   opacity: 0;
   margin-top: 0;
   overflow: hidden;
-  transition: height 250ms ease, opacity 250ms ease, margin-top 250ms ease;
+  transition: max-height 250ms ease, opacity 250ms ease, margin-top 250ms ease;
 }
 
 .wts-drawer.open {
-  height: 600px;
+  max-height: 2000px;
   opacity: 1;
   margin-top: 12px;
 }
 
-@media (min-width: 768px) {
-  .wts-drawer.open {
-    height: 680px;
-  }
-}
-
 .wts-drawer.open.map-expanded {
-  height: calc(70vh + 220px);
-}
-
-.map-drawer {
-  height: 0;
-  opacity: 0;
-  margin-top: 0;
-  overflow: hidden;
-  transition: height 250ms ease, opacity 250ms ease, margin-top 250ms ease;
-}
-
-.map-drawer.open {
-  height: 420px;
-  opacity: 1;
-  margin-top: 24px;
-}
-
-@media (min-width: 768px) {
-  .map-drawer.open {
-    height: 520px;
-  }
+  max-height: calc(70vh + 700px);
 }

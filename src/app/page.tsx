@@ -66,6 +66,7 @@ type AccordionEvent = {
   lat: number;
   lng: number;
   time: string;
+  ceremonyTime?: string;
   dresscode: string;
   notes: string;
   icsStart: string;
@@ -102,8 +103,9 @@ const EVENTS: AccordionEvent[] = [
     lat: 25.848697500937515,
     lng: -80.17283599937437,
     time: '6:00 PM – 12:00 AM',
+    ceremonyTime: '6:30 PM — Ceremony will begin promptly at 6:30 PM',
     dresscode: 'Garden Party Formal',
-    notes: 'Celebration required.',
+    notes: 'Celebration required. Uber and rideshare are strongly encouraged.',
     icsStart: '20260815T180000',
     icsEnd: '20260816T000000',
     eventYear: 2026,
@@ -313,14 +315,8 @@ function roundedRectGeoJSON(
 }
 
 export default function Home() {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-
-  const [lng] = useState(-80.1727827538205);
-  const [lat] = useState(25.850014692533772);
-
   const buttonRowRef = useRef<HTMLDivElement>(null);
-  const [activeSection, setActiveSection] = useState<'plan' | 'stay' | 'area' | null>(null);
+  const [activeSection, setActiveSection] = useState<'wedding' | 'other' | 'planfor' | null>(null);
 
   const [guest, setGuest] = useState<Guest | null>(null);
   const [isRSVPOpen, setIsRSVPOpen] = useState(false);
@@ -456,44 +452,6 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => {
-    if (map.current || !mapContainer.current) return;
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [-80.1600, 25.8300],
-      zoom: 11.5,
-    });
-    map.current.on('load', () => {
-      applyMonochromeStyle(map.current!);
-
-      // ── Area-of-interest regions (rounded GeoJSON polygons) ─────────────────
-      const areaRegions: [number, number, number, number, number][] = [
-        [-80.1415, 25.7765, -80.1080, 25.8760, 0.003], // Miami Beach + Surfside
-        [-80.1850, 25.8430, -80.1460, 25.8540, 0.003], // Normandy + North Bay Village
-        [-80.2000, 25.7950, -80.1880, 25.8080, 0.003], // Wynwood
-        [-80.1980, 25.8050, -80.1830, 25.8220, 0.003], // Midtown + Design District
-      ];
-
-      areaRegions.forEach(([minLng, minLat, maxLng, maxLat, r], i) => {
-        const id = `area-region-${i + 1}`;
-        const ring = roundedRectGeoJSON(minLng, minLat, maxLng, maxLat, r);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        map.current!.addSource(id, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } } } as any);
-        map.current!.addLayer({ id: `${id}-fill`, type: 'fill', source: id, paint: { 'fill-color': 'rgba(147, 197, 253, 0.25)' } });
-        map.current!.addLayer({ id: `${id}-line`, type: 'line', source: id, paint: { 'line-color': '#2563eb', 'line-width': 2, 'line-dasharray': [3, 2] } });
-      });
-    });
-    new mapboxgl.Marker({ color: '#191b25' })
-      .setLngLat([lng, lat])
-      .addTo(map.current);
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
-  }, [lng, lat]);
 
   const closeRSVP = useCallback(() => {
     setIsClosing(true);
@@ -577,7 +535,7 @@ export default function Home() {
 
   // WTS map: lazy init on first open
   useEffect(() => {
-    if (activeSection !== 'stay' || wtsInitialized.current || !wtsMapContainer.current) return;
+    if (activeSection !== 'planfor' || wtsInitialized.current || !wtsMapContainer.current) return;
     const timer = setTimeout(async () => {
       if (wtsMap.current || !wtsMapContainer.current) return;
       wtsInitialized.current = true;
@@ -591,6 +549,23 @@ export default function Home() {
 
       wtsMap.current.on('load', () => {
         applyMonochromeStyle(wtsMap.current!);
+
+        // ── Area-of-interest regions (rounded GeoJSON polygons) ─────────────────
+        const areaRegions: [number, number, number, number, number][] = [
+          [-80.1415, 25.7765, -80.1080, 25.8760, 0.003], // Miami Beach + Surfside
+          [-80.1850, 25.8430, -80.1460, 25.8540, 0.003], // Normandy + North Bay Village
+          [-80.2000, 25.7950, -80.1880, 25.8080, 0.003], // Wynwood
+          [-80.1980, 25.8050, -80.1830, 25.8220, 0.003], // Midtown + Design District
+        ];
+
+        areaRegions.forEach(([minLng, minLat, maxLng, maxLat, r], i) => {
+          const id = `area-region-${i + 1}`;
+          const ring = roundedRectGeoJSON(minLng, minLat, maxLng, maxLat, r);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          wtsMap.current!.addSource(id, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } } } as any);
+          wtsMap.current!.addLayer({ id: `${id}-fill`, type: 'fill', source: id, paint: { 'fill-color': 'rgba(147, 197, 253, 0.25)' } });
+          wtsMap.current!.addLayer({ id: `${id}-line`, type: 'line', source: id, paint: { 'line-color': '#2563eb', 'line-width': 2, 'line-dasharray': [3, 2] } });
+        });
 
         let wtsRouteInfoPopup: mapboxgl.Popup | null = null;
 
@@ -761,13 +736,13 @@ export default function Home() {
     return () => document.removeEventListener('mousedown', handler);
   }, [wtsFilterOpen]);
 
-  const openWTS = () => {
-    const isOpen = activeSection === 'stay';
+  const openPlanFor = () => {
+    const isOpen = activeSection === 'planfor';
     if (isOpen) {
       setWtsMapExpanded(false);
       setActiveSection(null);
     } else {
-      setActiveSection('stay');
+      setActiveSection('planfor');
       if (wtsInitialized.current) setTimeout(() => wtsMap.current?.resize(), 260);
     }
   };
@@ -822,7 +797,7 @@ export default function Home() {
 
   // Clear panel state when WTS section closes
   useEffect(() => {
-    if (activeSection !== 'stay') {
+    if (activeSection !== 'planfor') {
       setWtsSelectedCard(null);
       setWtsDetailProperty(null);
       setWtsExpandedClosing(false);
@@ -880,18 +855,18 @@ export default function Home() {
     }
   }, [closeWTSPanel]);
 
-  const openMap = () => {
-    setActiveSection(prev => {
-      const next = prev === 'plan' ? null : 'plan';
-      if (next === 'plan') setTimeout(() => map.current?.resize(), 260);
-      return next;
-    });
+  const openWedding = () => {
+    setActiveSection(prev => prev === 'wedding' ? null : 'wedding');
+  };
+
+  const openOtherEvents = () => {
+    setActiveSection(prev => prev === 'other' ? null : 'other');
   };
 
   const ctaButtons: { label: string; onClick?: () => void; href?: string; hidden?: boolean }[] = [
-    { label: 'RSVP', onClick: openRSVP },
-    { label: 'WHERE TO STAY', onClick: openWTS },
-    { label: 'WHAT TO PLAN FOR', onClick: openMap },
+    { label: 'THE WEDDING', onClick: openWedding },
+    { label: 'OTHER EVENTS', onClick: openOtherEvents },
+    { label: 'WHAT TO PLAN FOR', onClick: openPlanFor },
   ];
 
   const today = new Date();
@@ -899,8 +874,10 @@ export default function Home() {
   const todayMonth = today.getMonth() + 1;
   const todayDay = today.getDate();
 
-  const visibleEvents = EVENTS.filter(event => {
-    if (event.id === 'wedding') return true;
+  const weddingEvent = EVENTS.find(event => event.id === 'wedding')!;
+
+  const visibleOtherEvents = EVENTS.filter(event => {
+    if (event.id === 'wedding') return false;
     if (!guest) return false;
     if (event.id === 'welcome-dinner') return guest.welcomeDinner === true;
     if (event.id === 'after-party') return guest.afterParty === true;
@@ -919,6 +896,194 @@ export default function Home() {
     : categoryFilteredProperties.filter(p => wtsSelectedTypes.has(p.type))
   ).filter(p => CARD_GRID_TYPES.has(p.type));
 
+  const renderEventBody = (event: AccordionEvent) => {
+    const isDayOf = todayYear === event.eventYear && todayMonth === event.eventMonth && todayDay === event.eventDay;
+    const btnStyle: React.CSSProperties = { fontSize: '11px', letterSpacing: '1px', color: '#D4A853', border: '1px solid #D4A853', borderRadius: '6px', padding: '6px 12px', background: 'transparent', cursor: 'pointer' };
+    const calBtn = (
+      <a
+        href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${event.icsStart}/${event.icsEnd}&location=${encodeURIComponent(event.address)}&details=${encodeURIComponent(event.notes)}`}
+        target="_blank" rel="noopener noreferrer"
+        className="font-mono uppercase"
+        style={{ ...btnStyle, textDecoration: 'none', display: 'inline-block' }}
+      >
+        Add to Calendar
+      </a>
+    );
+    const venueCard = (
+      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+          <img src="/icons/location.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Venue</div>
+            <div className="font-ui text-white" style={{ fontSize: '15px' }}>{event.venueName}</div>
+          </div>
+        </div>
+      </div>
+    );
+    const locationCard = (
+      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+          <img src="/icons/location.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ flex: 1 }}>
+            <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Location</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span className="font-ui text-white" style={{ fontSize: '15px' }}>{event.address}</span>
+              <span
+                role="button"
+                onClick={(e) => { e.stopPropagation(); copyVenue(event.address, event.id); }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', flexShrink: 0 }}
+                aria-label="Copy address"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="white" style={{ opacity: 0.55, flexShrink: 0 }}>
+                  <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                </svg>
+                <span className="font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '1px', color: '#D4A853' }}>
+                  {copiedId === event.id ? 'Copied!' : 'copy address'}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+    if (isDayOf) {
+      return (
+        <div style={{ padding: '0 20px 20px' }}>
+          {venueCard}
+          {locationCard}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '24px' }}>
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono uppercase"
+              style={{ ...btnStyle, textDecoration: 'none', display: 'inline-block' }}
+            >
+              Get Directions
+            </a>
+            <a
+              href={`https://lyft.com/ride?destination[address]=${encodeURIComponent(event.address)}`}
+              target="_blank" rel="noopener noreferrer"
+              className="font-mono uppercase"
+              style={{ ...btnStyle, textDecoration: 'none', display: 'inline-block' }}
+            >
+              Lyft
+            </a>
+            {calBtn}
+          </div>
+          {event.id === 'wedding' && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '8px' }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); openStyleGuide(gardenPartyImages); }}
+                className="font-mono uppercase"
+                style={{ ...btnStyle, display: 'inline-block' }}
+              >
+                Style Guide
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+    return (
+      <div style={{ padding: '0 20px 20px' }}>
+        {venueCard}
+        {locationCard}
+
+        {/* Time */}
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+            <img src="/icons/clock.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Time</div>
+              <div className="font-ui text-white" style={{ fontSize: '15px' }}>{event.time}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Ceremony Time */}
+        {event.ceremonyTime && (
+          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <img src="/icons/clock.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Ceremony Time</div>
+                <div className="font-ui text-white" style={{ fontSize: '15px' }}>{event.ceremonyTime}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dress */}
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+            <img src="/icons/dress.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Dress</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <span className="font-ui text-white" style={{ fontSize: '15px' }}>{event.dresscode}</span>
+                {STYLE_GUIDE_IMAGES_BY_EVENT[event.id] && (
+                  <span
+                    role="button"
+                    onClick={(e) => { e.stopPropagation(); openStyleGuide(STYLE_GUIDE_IMAGES_BY_EVENT[event.id]); }}
+                    className="font-mono uppercase"
+                    style={{ fontSize: '10px', letterSpacing: '1px', color: '#D4A853', cursor: 'pointer' }}
+                  >
+                    {STYLE_GUIDE_LINK_TEXT[event.id]}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Detail */}
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+            <img src="/icons/notes.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Detail</div>
+              <div className="font-ui text-white" style={{ fontSize: '15px' }}>{event.notes}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '24px' }}>
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono uppercase"
+            style={{ ...btnStyle, textDecoration: 'none', display: 'inline-block' }}
+          >
+            Get Directions
+          </a>
+          <a
+            href={`https://lyft.com/ride?destination[address]=${encodeURIComponent(event.address)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="font-mono uppercase"
+            style={{ ...btnStyle, textDecoration: 'none', display: 'inline-block' }}
+          >
+            Lyft
+          </a>
+          {calBtn}
+        </div>
+        {event.id === 'wedding' && (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '8px' }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); openStyleGuide(gardenPartyImages); }}
+              className="font-mono uppercase"
+              style={{ ...btnStyle, display: 'inline-block' }}
+            >
+              Style Guide
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <main style={{ background: '#191b25' }} className="min-h-screen text-white">
 
@@ -927,47 +1092,73 @@ export default function Home() {
         style={{ background: 'linear-gradient(to top, #191b25 27%, #131417 91%)' }}
         className="flex flex-col items-center justify-center text-center px-6 py-24 min-h-[60vh]"
       >
-        <div className="flex flex-col items-center gap-6">
-          <p className="font-display text-white font-bold text-xl md:text-2xl tracking-wide" aria-live="polite">
-            Welcome{guest?.firstName ? ` ${guest.firstName}` : ''}
-          </p>
-          <p className="font-ui text-white text-sm uppercase" style={{ letterSpacing: '1px' }}>
-            {guest?.plusOneName
-              ? `You and ${guest.plusOneName} are cordially invited to join us for`
-              : 'You are cordially invited to join us for'}
-          </p>
-          <p className="font-display text-white font-bold text-xl md:text-2xl tracking-wide">
-            the celebration of
-          </p>
-        </div>
+        <img
+          src="/assets/logo.svg"
+          alt="Castlewave"
+          style={{ maxWidth: '263px', width: '40vw' }}
+        />
 
-        <img src="/CD_logo.svg" alt="Castlewave" className="w-[200px] md:w-[280px] my-16" />
+        <img
+          src="/assets/date.svg"
+          alt="August 15, 2026"
+          style={{ maxWidth: '181px', width: '100%', marginTop: '48px' }}
+        />
 
-        <p className="font-display text-white text-xl md:text-2xl tracking-wide">
-          August 15, 2026
+        <hr
+          style={{
+            width: '500px',
+            maxWidth: '80vw',
+            border: 'none',
+            borderTop: '1px solid rgba(255,255,255,0.3)',
+            margin: '40px auto',
+          }}
+        />
+
+        <p
+          className="font-ui"
+          style={{ fontWeight: 400, fontSize: '14px', color: '#ffffff', textAlign: 'center', maxWidth: '660px' }}
+          aria-live="polite"
+        >
+          {guest?.firstName
+            ? `${guest.firstName}${guest.plusOneName ? ` and ${guest.plusOneName}` : ''}, we can't wait to celebrate with you in Miami! As the big day approaches, please check back here periodically for updates, and to confirm details.  The links below contain the information you need.`
+            : "We can't wait to celebrate with you in Miami! As the big day approaches, please check back here periodically for updates, and to confirm details.  The links below contain the information you need."}
         </p>
-        <p className="font-display text-white text-xl md:text-2xl tracking-wide">
-          Miami, FL
-        </p>
 
+        <button
+          onClick={openRSVP}
+          className="font-ui font-bold uppercase transition-opacity duration-150 hover:opacity-70 cursor-pointer"
+          style={{
+            background: '#ffffff',
+            color: '#15161a',
+            width: '160px',
+            height: '32px',
+            border: '1px solid #5d5d5d',
+            borderRadius: '6px',
+            fontSize: '13px',
+            letterSpacing: '1px',
+            marginTop: '40px',
+          }}
+        >
+          RSVP
+        </button>
       </section>
 
-      {/* CTA Buttons + inline map */}
+      {/* CTA Buttons */}
       <section className="flex flex-col items-center px-6 pt-10 pb-20">
         {/* Outer wrapper: full-width on mobile, shrinks to button row width on desktop */}
         <div className="flex flex-col w-full md:w-fit md:mx-auto">
-          <div ref={buttonRowRef} className="flex flex-col md:flex-row gap-4">
+          <div ref={buttonRowRef} className="flex flex-col md:flex-row gap-4 justify-center">
             {ctaButtons.map(({ label, onClick, href, hidden }) => {
               const sharedStyle = {
-                background: '#191b25',
+                background: '#16181e',
                 borderRadius: '6px',
                 height: '75px',
-                minWidth: '279px',
-                letterSpacing: '1px',
-                border: '1px solid rgba(255,255,255,0.15)',
+                width: '279px',
+                letterSpacing: '1.6px',
+                border: '1px solid #5d5d5d',
                 ...(hidden ? { display: 'none' } : {}),
               };
-              const sharedClass = "font-ui flex items-center justify-center w-full md:w-auto text-white font-bold uppercase text-sm px-8 transition-opacity duration-150 hover:opacity-70 cursor-pointer";
+              const sharedClass = "font-ui flex items-center justify-center text-white font-bold uppercase text-sm px-8 transition-opacity duration-150 hover:opacity-70 cursor-pointer";
               return href ? (
                 <Link key={label} href={href} style={sharedStyle} className={sharedClass}>
                   {label}
@@ -980,10 +1171,25 @@ export default function Home() {
             })}
           </div>
 
-          {/* Accordion — above text and map */}
-          {activeSection === 'plan' && (
+          {/* THE WEDDING — single event, always expanded, no accordion toggle */}
+          {activeSection === 'wedding' && (
             <div className="animate-fade-in" style={{ marginTop: '8px', width: '100%' }}>
-              {visibleEvents.map((event, idx) => (
+              <div style={{ padding: '16px 20px 0' }}>
+                <div className="font-mono uppercase" style={{ fontSize: '13px', letterSpacing: '2px', color: '#D4A853', marginBottom: '4px' }}>
+                  {weddingEvent.day}
+                </div>
+                <div className="font-ui text-white" style={{ fontSize: '16px', fontWeight: 500 }}>
+                  {weddingEvent.name}
+                </div>
+              </div>
+              {renderEventBody(weddingEvent)}
+            </div>
+          )}
+
+          {/* OTHER EVENTS — accordion of remaining events */}
+          {activeSection === 'other' && (
+            <div className="animate-fade-in" style={{ marginTop: '8px', width: '100%' }}>
+              {visibleOtherEvents.map((event, idx) => (
                 <div key={event.id} style={{ borderTop: idx > 0 ? '1px solid rgba(255,255,255,0.1)' : undefined }}>
                   {/* Header */}
                   <button
@@ -1006,207 +1212,15 @@ export default function Home() {
 
                   {/* Expanded content */}
                   <div style={{ maxHeight: openAccordion === event.id ? '600px' : '0', overflow: 'hidden', transition: 'max-height 250ms ease' }}>
-                    {(() => {
-                      const isDayOf = todayYear === event.eventYear && todayMonth === event.eventMonth && todayDay === event.eventDay;
-                      const btnStyle: React.CSSProperties = { fontSize: '11px', letterSpacing: '1px', color: '#D4A853', border: '1px solid #D4A853', borderRadius: '6px', padding: '6px 12px', background: 'transparent', cursor: 'pointer' };
-                      const calBtn = (
-                        <a
-                          href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${event.icsStart}/${event.icsEnd}&location=${encodeURIComponent(event.address)}&details=${encodeURIComponent(event.notes)}`}
-                          target="_blank" rel="noopener noreferrer"
-                          className="font-mono uppercase"
-                          style={{ ...btnStyle, textDecoration: 'none', display: 'inline-block' }}
-                        >
-                          Add to Calendar
-                        </a>
-                      );
-                      const venueCard = (
-                        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                            <img src="/icons/location.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
-                            <div>
-                              <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Venue</div>
-                              <div className="font-ui text-white" style={{ fontSize: '15px' }}>{event.venueName}</div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                      const locationCard = (
-                        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                            <img src="/icons/location.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
-                            <div style={{ flex: 1 }}>
-                              <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Location</div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                <span className="font-ui text-white" style={{ fontSize: '15px' }}>{event.address}</span>
-                                <span
-                                  role="button"
-                                  onClick={(e) => { e.stopPropagation(); copyVenue(event.address, event.id); }}
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', flexShrink: 0 }}
-                                  aria-label="Copy address"
-                                >
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white" style={{ opacity: 0.55, flexShrink: 0 }}>
-                                    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                                  </svg>
-                                  <span className="font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '1px', color: '#D4A853' }}>
-                                    {copiedId === event.id ? 'Copied!' : 'copy address'}
-                                  </span>
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                      if (isDayOf) {
-                        return (
-                          <div style={{ padding: '0 20px 20px' }}>
-                            {venueCard}
-                            {locationCard}
-                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '24px' }}>
-                              <a
-                                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-mono uppercase"
-                                style={{ ...btnStyle, textDecoration: 'none', display: 'inline-block' }}
-                              >
-                                Get Directions
-                              </a>
-                              <a
-                                href={`https://lyft.com/ride?destination[address]=${encodeURIComponent(event.address)}`}
-                                target="_blank" rel="noopener noreferrer"
-                                className="font-mono uppercase"
-                                style={{ ...btnStyle, textDecoration: 'none', display: 'inline-block' }}
-                              >
-                                Lyft
-                              </a>
-                              {calBtn}
-                            </div>
-                            {event.id === 'wedding' && (
-                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '8px' }}>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); openStyleGuide(gardenPartyImages); }}
-                                  className="font-mono uppercase"
-                                  style={{ ...btnStyle, display: 'inline-block' }}
-                                >
-                                  Style Guide
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-                      return (
-                        <div style={{ padding: '0 20px 20px' }}>
-                          {venueCard}
-                          {locationCard}
-
-                          {/* Time */}
-                          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                              <img src="/icons/clock.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
-                              <div>
-                                <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Time</div>
-                                <div className="font-ui text-white" style={{ fontSize: '15px' }}>{event.time}</div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Dress */}
-                          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                              <img src="/icons/dress.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
-                              <div>
-                                <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Dress</div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                  <span className="font-ui text-white" style={{ fontSize: '15px' }}>{event.dresscode}</span>
-                                  {STYLE_GUIDE_IMAGES_BY_EVENT[event.id] && (
-                                    <span
-                                      role="button"
-                                      onClick={(e) => { e.stopPropagation(); openStyleGuide(STYLE_GUIDE_IMAGES_BY_EVENT[event.id]); }}
-                                      className="font-mono uppercase"
-                                      style={{ fontSize: '10px', letterSpacing: '1px', color: '#D4A853', cursor: 'pointer' }}
-                                    >
-                                      {STYLE_GUIDE_LINK_TEXT[event.id]}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Detail */}
-                          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', marginBottom: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                              <img src="/icons/notes.svg" alt="" width={20} height={20} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', flexShrink: 0, marginTop: '2px' }} />
-                              <div>
-                                <div className="font-mono uppercase" style={{ fontSize: '11px', letterSpacing: '2px', color: '#D4A853', marginBottom: '3px' }}>Detail</div>
-                                <div className="font-ui text-white" style={{ fontSize: '15px' }}>{event.notes}</div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Action buttons */}
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '24px' }}>
-                            <a
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-mono uppercase"
-                              style={{ ...btnStyle, textDecoration: 'none', display: 'inline-block' }}
-                            >
-                              Get Directions
-                            </a>
-                            <a
-                              href={`https://lyft.com/ride?destination[address]=${encodeURIComponent(event.address)}`}
-                              target="_blank" rel="noopener noreferrer"
-                              className="font-mono uppercase"
-                              style={{ ...btnStyle, textDecoration: 'none', display: 'inline-block' }}
-                            >
-                              Lyft
-                            </a>
-                            {calBtn}
-                          </div>
-                          {event.id === 'wedding' && (
-                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '8px' }}>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); openStyleGuide(gardenPartyImages); }}
-                                className="font-mono uppercase"
-                                style={{ ...btnStyle, display: 'inline-block' }}
-                              >
-                                Style Guide
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
+                    {renderEventBody(event)}
                   </div>
                 </div>
               ))}
             </div>
           )}
-
-          {/* Map drawer — text then map */}
-          <div className={`map-drawer${activeSection === 'plan' ? ' open' : ''}`}>
-          <div style={{ maxWidth: '869px', margin: '0 auto', padding: '16px 20px 24px 20px', textAlign: 'left' }}>
-            <p className="font-ui text-white text-sm" style={{ letterSpacing: '1px' }}>
-              The areas highlighted on the map below are where we recommend you focus your search. All are easily accessible to the event venue.
-            </p>
-          </div>
-          <div className="h-[300px] md:h-[400px]" style={{ borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
-            <div ref={mapContainer} className="w-full h-full" />
-            <button
-              onClick={() => setActiveSection(null)}
-              className="absolute top-2 right-2 z-10 font-ui text-white/70 hover:text-white text-sm leading-none transition-colors"
-              style={{ background: 'rgba(0,0,0,0.45)', borderRadius: '4px', width: '28px', height: '28px' }}
-              aria-label="Close map"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
         </div>
       </section>
+
 
       {/* WTS inline section */}
       <section
@@ -1217,18 +1231,11 @@ export default function Home() {
           transition: 'padding-left 300ms ease, padding-right 300ms ease',
         }}
       >
-        <div className={`wts-drawer${activeSection === 'stay' ? ' open' : ''}${wtsMapExpanded ? ' map-expanded' : ''}`}>
-          {/* Description */}
+        <div className={`wts-drawer${activeSection === 'planfor' ? ' open' : ''}${wtsMapExpanded ? ' map-expanded' : ''}`}>
+          {/* Area paragraph text — moved above the combined map */}
           <div style={{ maxWidth: '869px', margin: '0 auto', padding: '8px 20px 20px 20px', textAlign: 'left' }}>
-            {guest && (
-              <p className="font-ui text-white text-sm" style={{ letterSpacing: '1px', marginBottom: '12px' }}>
-                {guest.firstName && guest.salutation && guest.reasoning
-                  ? `${guest.firstName} and ${guest.salutation}, we have curated the below options that we think could be a good fit for you ${guest.reasoning}.`
-                  : `${guest.firstName}, we have curated the below options that we think could be a good fit for you.`}
-              </p>
-            )}
             <p className="font-ui text-white text-sm" style={{ letterSpacing: '1px' }}>
-              The event will be easily accessible from wherever you decide to stay. We have compiled options to help your search. With that said — these are suggestions; If you know where you want to stay, don&apos;t let our suggestions dissuade you! Our hospitality friends have graciously offered a discounts for our guests, and those details are included in each listing below.
+              The areas highlighted on the map below are where we recommend you focus your search. All are easily accessible to the event venue.
             </p>
           </div>
 
@@ -1310,11 +1317,28 @@ export default function Home() {
               </button>
             </div>
           </div>
+
+          {/* WHERE TO STAY subheading — separates the map from the property content below */}
+          <div style={{ maxWidth: '869px', margin: '0 auto', padding: '8px 20px 20px 20px', textAlign: 'left' }}>
+            <h2 className="font-display" style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff', margin: '0 0 12px' }}>
+              WHERE TO STAY
+            </h2>
+            {guest && (
+              <p className="font-ui text-white text-sm" style={{ letterSpacing: '1px', marginBottom: '12px' }}>
+                {guest.firstName && guest.salutation && guest.reasoning
+                  ? `${guest.firstName} and ${guest.salutation}, we have curated the below options that we think could be a good fit for you ${guest.reasoning}.`
+                  : `${guest.firstName}, we have curated the below options that we think could be a good fit for you.`}
+              </p>
+            )}
+            <p className="font-ui text-white text-sm" style={{ letterSpacing: '1px' }}>
+              The event will be easily accessible from wherever you decide to stay. We have compiled options to help your search. With that said — these are suggestions; If you know where you want to stay, don&apos;t let our suggestions dissuade you! Our hospitality friends have graciously offered a discounts for our guests, and those details are included in each listing below.
+            </p>
+          </div>
         </div>
 
         {/* Property card grid — outside wts-drawer, appears below map */}
-        {activeSection === 'stay' && wtsProperties.length > 0 && (
-          <div className="animate-fade-in" style={{ maxWidth: '869px', margin: '0 auto', padding: '0 20px 32px', marginTop: '-28px' }}>
+        {activeSection === 'planfor' && wtsProperties.length > 0 && (
+          <div className="animate-fade-in" style={{ maxWidth: '869px', margin: '0 auto', padding: '0 20px 32px' }}>
 
             {/* Card grid */}
             <div
