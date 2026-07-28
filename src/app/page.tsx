@@ -332,6 +332,7 @@ export default function Home() {
   const [verifyInput, setVerifyInput] = useState('');
   const [verifyMatch, setVerifyMatch] = useState<VerifyMatch | null>(null);
   const [verifyMatchHovered, setVerifyMatchHovered] = useState(false);
+  const [verifyMatchClicked, setVerifyMatchClicked] = useState(false);
   const [heroLogoAnimate, setHeroLogoAnimate] = useState(false);
 
   const [isRSVPOpen, setIsRSVPOpen] = useState(false);
@@ -482,6 +483,11 @@ export default function Home() {
       }
     }
   }, []);
+
+  // Reset the "tap to confirm" helper whenever the matched guest changes
+  useEffect(() => {
+    setVerifyMatchClicked(false);
+  }, [verifyMatch]);
 
   // Debounced guest name search for the verification modal
   useEffect(() => {
@@ -2009,22 +2015,43 @@ export default function Home() {
           />
 
           {verifyMatch && (
-            <div
-              onClick={() => selectVerifyMatch(verifyMatch)}
-              className="font-futura font-medium"
-              style={{
-                marginTop: '16px',
-                color: '#ffffff',
-                fontSize: '18px',
-                textTransform: 'uppercase',
-                textAlign: 'center',
-                cursor: 'pointer',
-                textDecoration: verifyMatchHovered ? 'underline' : 'none',
-              }}
-              onMouseEnter={() => setVerifyMatchHovered(true)}
-              onMouseLeave={() => setVerifyMatchHovered(false)}
-            >
-              {verifyMatch.firstName} {verifyMatch.lastName}
+            <div style={{ marginTop: '16px', textAlign: 'center' }}>
+              <div
+                onClick={() => { setVerifyMatchClicked(true); selectVerifyMatch(verifyMatch); }}
+                onMouseEnter={() => setVerifyMatchHovered(true)}
+                onMouseLeave={() => setVerifyMatchHovered(false)}
+                className="font-futura font-medium"
+                style={{
+                  display: 'inline-block',
+                  border: `1px solid ${verifyMatchHovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)'}`,
+                  borderRadius: '4px',
+                  padding: '8px 20px',
+                  background: 'transparent',
+                  color: '#ffffff',
+                  fontSize: '18px',
+                  textTransform: 'uppercase',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'border-color 250ms ease',
+                }}
+              >
+                {verifyMatch.firstName} {verifyMatch.lastName}
+              </div>
+              {!verifyMatchClicked && (
+                <div
+                  className="font-mono"
+                  style={{
+                    marginTop: '8px',
+                    color: 'rgba(255,255,255,0.4)',
+                    fontSize: '10px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '2px',
+                    textAlign: 'center',
+                  }}
+                >
+                  Tap to confirm
+                </div>
+              )}
             </div>
           )}
 
