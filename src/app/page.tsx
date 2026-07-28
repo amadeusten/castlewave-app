@@ -24,6 +24,12 @@ type Guest = {
   reasoning: string | null;
 };
 
+type VerifyMatch = {
+  recordId: string;
+  firstName: string;
+  lastName: string;
+};
+
 const inputStyle = {
   background: 'rgba(255,255,255,0.06)',
   borderRadius: '6px',
@@ -319,6 +325,15 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState<'wedding' | 'other' | 'planfor' | null>(null);
 
   const [guest, setGuest] = useState<Guest | null>(null);
+
+  // Guest verification modal state
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+  const [verifyModalClosing, setVerifyModalClosing] = useState(false);
+  const [verifyInput, setVerifyInput] = useState('');
+  const [verifyInputFocused, setVerifyInputFocused] = useState(false);
+  const [verifyMatch, setVerifyMatch] = useState<VerifyMatch | null>(null);
+  const [verifyMatchHovered, setVerifyMatchHovered] = useState(false);
+
   const [isRSVPOpen, setIsRSVPOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -429,10 +444,14 @@ export default function Home() {
   }, [styleGuideOpen]);
 
 
-  // Resolve guest from ?g= param or existing cookie
+  // Resolve guest from ?g= param or existing cookie; otherwise prompt verification
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const gParam = params.get('g');
+
+    const maybeShowVerifyModal = () => {
+      if (!readCookie('cw_skip_verify')) setVerifyModalOpen(true);
+    };
 
     if (gParam) {
       fetch(`/api/guest?id=${encodeURIComponent(gParam)}`)
@@ -441,16 +460,73 @@ export default function Home() {
           if (data) {
             setGuest(data);
             writeCookie('cw_guest', JSON.stringify(data), 30);
+          } else {
+            maybeShowVerifyModal();
           }
         })
-        .catch(() => null);
+        .catch(() => maybeShowVerifyModal());
     } else {
       const raw = readCookie('cw_guest');
       if (raw) {
-        try { setGuest(JSON.parse(raw)); } catch { /* malformed cookie */ }
+        try { setGuest(JSON.parse(raw)); } catch { maybeShowVerifyModal(); }
+      } else {
+        maybeShowVerifyModal();
       }
     }
   }, []);
+
+  // Debounced guest name search for the verification modal
+  useEffect(() => {
+    if (verifyInput.trim().length < 2) {
+      setVerifyMatch(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      fetch(`/api/verify-guest?q=${encodeURIComponent(verifyInput.trim())}`)
+        .then(r => r.ok ? r.json() : null)
+        .then((data: { matches: VerifyMatch[] } | null) => {
+          setVerifyMatch(data && data.matches.length === 1 ? data.matches[0] : null);
+        })
+        .catch(() => setVerifyMatch(null));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [verifyInput]);
+
+  // Body scroll lock while verification modal is open
+  useEffect(() => {
+    if (verifyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [verifyModalOpen]);
+
+  const closeVerifyModal = useCallback(() => {
+    setVerifyModalClosing(true);
+    setTimeout(() => {
+      setVerifyModalOpen(false);
+      setVerifyModalClosing(false);
+    }, 250);
+  }, []);
+
+  const selectVerifyMatch = (match: VerifyMatch) => {
+    fetch(`/api/guest?id=${encodeURIComponent(match.recordId)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((data: Guest | null) => {
+        if (data) {
+          setGuest(data);
+          writeCookie('cw_guest', JSON.stringify(data), 30);
+        }
+      })
+      .catch(() => null)
+      .finally(() => closeVerifyModal());
+  };
+
+  const skipVerify = () => {
+    document.cookie = 'cw_skip_verify=true; path=/; SameSite=Lax';
+    closeVerifyModal();
+  };
 
 
   const closeRSVP = useCallback(() => {
@@ -1089,38 +1165,49 @@ export default function Home() {
 
       {/* Hero */}
       <section
-        style={{ background: 'linear-gradient(to top, #191b25 27%, #131417 91%)' }}
-        className="flex flex-col items-center justify-center text-center px-6 py-24 min-h-[60vh]"
+        style={{
+          background: 'linear-gradient(to top, #191b25 27%, #131417 91%)',
+          padding: 'clamp(40px, 6vw, 80px) 20px clamp(32px, 5vw, 60px)',
+        }}
+        className="flex flex-col items-center justify-center text-center min-h-[60vh]"
       >
         <img
           src="/assets/logo.svg"
           alt="Castlewave"
-          style={{ maxWidth: '263px', width: '40vw' }}
+          className="hero-logo-in"
+          style={{ width: 'clamp(280px, 50vw, 646px)', height: 'auto' }}
         />
 
         <img
           src="/assets/date.svg"
           alt="August 15, 2026"
-          style={{ maxWidth: '181px', width: '100%', marginTop: '48px' }}
+          style={{ width: 'clamp(140px, 18vw, 241px)', height: 'auto', marginTop: 'clamp(24px, 4vw, 56px)' }}
         />
 
         <hr
           style={{
-            width: '500px',
-            maxWidth: '80vw',
+            width: 'clamp(240px, 40vw, 500px)',
+            maxWidth: '90vw',
             border: 'none',
-            borderTop: '1px solid rgba(255,255,255,0.3)',
-            margin: '40px auto',
+            borderTop: '1px solid rgba(255,255,255,0.25)',
+            margin: 'clamp(20px, 3vw, 40px) auto',
           }}
         />
 
         <p
           className="font-ui"
-          style={{ fontWeight: 400, fontSize: '14px', color: '#ffffff', textAlign: 'center', maxWidth: '660px' }}
+          style={{
+            fontWeight: 400,
+            fontSize: 'clamp(14px, 1.2vw, 18px)',
+            color: '#ffffff',
+            textAlign: 'center',
+            maxWidth: 'clamp(320px, 60vw, 660px)',
+            marginBottom: 'clamp(20px, 3vw, 36px)',
+          }}
           aria-live="polite"
         >
           {guest?.firstName
-            ? `${guest.firstName}${guest.plusOneName ? ` and ${guest.plusOneName}` : ''}, we can't wait to celebrate with you in Miami! As the big day approaches, please check back here periodically for updates, and to confirm details.  The links below contain the information you need.`
+            ? `${guest.firstName}${guest.plusOneName ? ` and ${guest.plusOneName}` : ''}, As our day fast approaches, we can’t wait to celebrate with you and, for those travelling, we can’t thank you enough for making the trip to Miami to be a part of our celebration.  Please continue to check back here periodically for updates or answers to questions that you may have.  The links below should have all the detailed information you need.`
             : "We can't wait to celebrate with you in Miami! As the big day approaches, please check back here periodically for updates, and to confirm details.  The links below contain the information you need."}
         </p>
 
@@ -1130,13 +1217,13 @@ export default function Home() {
           style={{
             background: '#ffffff',
             color: '#15161a',
-            width: '160px',
-            height: '32px',
+            width: 'clamp(140px, 12vw, 201px)',
+            height: 'clamp(32px, 3vw, 38px)',
             border: '1px solid #5d5d5d',
             borderRadius: '6px',
-            fontSize: '13px',
-            letterSpacing: '1px',
-            marginTop: '40px',
+            fontSize: 'clamp(12px, 1vw, 16px)',
+            letterSpacing: '1.6px',
+            marginBottom: 'clamp(32px, 5vw, 64px)',
           }}
         >
           RSVP
@@ -1320,7 +1407,7 @@ export default function Home() {
 
           {/* WHERE TO STAY subheading — separates the map from the property content below */}
           <div style={{ maxWidth: '869px', margin: '0 auto', padding: '8px 20px 20px 20px', textAlign: 'left' }}>
-            <h2 className="font-display" style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff', margin: '0 0 12px' }}>
+            <h2 className="font-ui" style={{ fontSize: '24px', fontWeight: 600, color: '#ffffff', margin: '0 0 12px' }}>
               WHERE TO STAY
             </h2>
             {guest && (
@@ -1584,7 +1671,7 @@ export default function Home() {
         >
           {/* Top bar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', flexShrink: 0 }}>
-            <span className="font-display" style={{ color: '#fff', fontSize: '18px', fontWeight: 700 }}>Style Guide</span>
+            <span className="font-ui" style={{ color: '#fff', fontSize: '18px', fontWeight: 600 }}>Style Guide</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               <div style={{ position: 'relative' }}>
                 <button
@@ -1697,12 +1784,12 @@ export default function Home() {
               ✕
             </button>
 
-            <h2 className="font-display text-2xl font-bold text-white mb-1">RSVP</h2>
+            <h2 className="font-ui text-2xl text-white mb-1" style={{ fontWeight: 600 }}>RSVP</h2>
             <p className="font-ui text-white/50 text-sm mb-6">We look forward to seeing you!</p>
 
             {status === 'success' ? (
               <div className="text-center py-8">
-                <p className="font-display text-white text-2xl mb-3">You&apos;re in.</p>
+                <p className="font-ui text-white text-2xl mb-3" style={{ fontWeight: 600 }}>You&apos;re in.</p>
                 <p className="font-ui text-white/50 text-sm mb-8">We can&apos;t wait to see you.</p>
                 <button
                   onClick={closeRSVP}
@@ -1824,6 +1911,93 @@ export default function Home() {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Guest Verification Modal */}
+      {verifyModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            background: 'rgba(0,0,0,0.92)',
+            animation: verifyModalClosing ? 'fadeOut 250ms ease-out forwards' : 'fadeIn 250ms ease-out forwards',
+          }}
+        >
+          <div
+            style={{
+              maxWidth: '480px',
+              width: '90vw',
+              background: '#191b25',
+              borderRadius: '10px',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+              padding: '40px 32px',
+            }}
+          >
+            <h2
+              className="font-ui"
+              style={{ fontWeight: 600, color: '#ffffff', fontSize: '22px', textAlign: 'center', marginBottom: '24px' }}
+            >
+              Welcome, please enter your name.
+            </h2>
+
+            <input
+              type="text"
+              value={verifyInput}
+              onChange={(e) => setVerifyInput(e.target.value)}
+              onFocus={() => setVerifyInputFocused(true)}
+              onBlur={() => setVerifyInputFocused(false)}
+              placeholder="Start typing your name..."
+              className="font-ui"
+              style={{
+                width: '100%',
+                background: 'rgba(255,255,255,0.06)',
+                border: `1px solid ${verifyInputFocused ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)'}`,
+                borderRadius: '6px',
+                padding: '12px 16px',
+                color: '#ffffff',
+                fontSize: '16px',
+                outline: 'none',
+              }}
+            />
+
+            {verifyMatch && (
+              <div
+                onClick={() => selectVerifyMatch(verifyMatch)}
+                onMouseEnter={() => setVerifyMatchHovered(true)}
+                onMouseLeave={() => setVerifyMatchHovered(false)}
+                className="font-ui"
+                style={{
+                  marginTop: '8px',
+                  padding: '12px 16px',
+                  background: verifyMatchHovered ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.08)',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(212,168,83,0.4)',
+                  color: '#ffffff',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 150ms ease',
+                }}
+              >
+                {verifyMatch.firstName} {verifyMatch.lastName}
+              </div>
+            )}
+
+            <div
+              className="font-mono"
+              style={{ marginTop: '24px', fontSize: '11px', color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}
+            >
+              Can&apos;t find your name?{' '}
+              <a href="mailto:rsvp@nichbranding.com" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}>
+                Contact us
+              </a>
+              <div style={{ marginTop: '8px' }}>
+                <span role="button" onClick={skipVerify} style={{ cursor: 'pointer', textDecoration: 'underline' }}>
+                  Continue without personalization
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}
