@@ -1266,7 +1266,7 @@ export default function Home() {
           aria-live="polite"
         >
           {guest?.firstName
-            ? `${guest.firstName}${guest.plusOneName ? ` and ${guest.plusOneName}` : ''}, as our day fast approaches, we can’t wait to celebrate with you and, for those travelling, we can’t thank you enough for making the trip to Miami to be a part of our celebration.  Please continue to check back here periodically for updates or answers to questions that you may have.  The links below should have all the detailed information you need.`
+            ? `${guest.firstName}${guest.plusOneName ? ` and ${guest.plusOneName}` : ''}, as our day fast approaches, we can’t wait to celebrate with you and, for those travelling, we can’t thank you enough for making the trip to Miami to be a part of our celebration.  Please continue to check here for updates or answers to questions that you may have.  The links below should have all the detailed information you need.`
             : "We can't wait to celebrate with you in Miami! As the big day approaches, please check back here periodically for updates, and to confirm details.  The links below contain the information you need."}
         </p>
 
