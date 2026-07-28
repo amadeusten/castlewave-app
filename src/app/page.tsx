@@ -2023,6 +2023,8 @@ export default function Home() {
                 className="font-futura font-medium"
                 style={{
                   display: 'inline-block',
+                  width: 'clamp(260px, 40vw, 400px)',
+                  boxSizing: 'border-box',
                   border: `1px solid ${verifyMatchHovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)'}`,
                   borderRadius: '4px',
                   padding: '8px 20px',
