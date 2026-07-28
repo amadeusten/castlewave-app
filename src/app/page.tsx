@@ -330,9 +330,9 @@ export default function Home() {
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [verifyModalClosing, setVerifyModalClosing] = useState(false);
   const [verifyInput, setVerifyInput] = useState('');
-  const [verifyInputFocused, setVerifyInputFocused] = useState(false);
   const [verifyMatch, setVerifyMatch] = useState<VerifyMatch | null>(null);
   const [verifyMatchHovered, setVerifyMatchHovered] = useState(false);
+  const [heroLogoAnimate, setHeroLogoAnimate] = useState(false);
 
   const [isRSVPOpen, setIsRSVPOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -450,7 +450,11 @@ export default function Home() {
     const gParam = params.get('g');
 
     const maybeShowVerifyModal = () => {
-      if (!readCookie('cw_skip_verify')) setVerifyModalOpen(true);
+      if (readCookie('cw_skip_verify')) {
+        setHeroLogoAnimate(true);
+      } else {
+        setVerifyModalOpen(true);
+      }
     };
 
     if (gParam) {
@@ -460,6 +464,7 @@ export default function Home() {
           if (data) {
             setGuest(data);
             writeCookie('cw_guest', JSON.stringify(data), 30);
+            setHeroLogoAnimate(true);
           } else {
             maybeShowVerifyModal();
           }
@@ -468,7 +473,10 @@ export default function Home() {
     } else {
       const raw = readCookie('cw_guest');
       if (raw) {
-        try { setGuest(JSON.parse(raw)); } catch { maybeShowVerifyModal(); }
+        try {
+          setGuest(JSON.parse(raw));
+          setHeroLogoAnimate(true);
+        } catch { maybeShowVerifyModal(); }
       } else {
         maybeShowVerifyModal();
       }
@@ -507,6 +515,7 @@ export default function Home() {
     setTimeout(() => {
       setVerifyModalOpen(false);
       setVerifyModalClosing(false);
+      setHeroLogoAnimate(true);
     }, 250);
   }, []);
 
@@ -1027,7 +1036,27 @@ export default function Home() {
         <div style={{ padding: '0 20px 20px' }}>
           {venueCard}
           {locationCard}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '24px' }}>
+          {event.id === 'wedding' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); openRSVP(); }}
+              className="font-futura font-medium uppercase w-full"
+              style={{
+                background: '#ffffff',
+                color: '#15161a',
+                border: '1px solid #5d5d5d',
+                borderRadius: '6px',
+                fontSize: '16px',
+                letterSpacing: '1.6px',
+                padding: '12px 20px',
+                marginTop: '24px',
+                marginBottom: '16px',
+                display: 'block',
+              }}
+            >
+              RSVP
+            </button>
+          )}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: event.id === 'wedding' ? 0 : '24px' }}>
             <a
               href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`}
               target="_blank"
@@ -1124,8 +1153,30 @@ export default function Home() {
           </div>
         </div>
 
+        {/* RSVP — wedding section only */}
+        {event.id === 'wedding' && (
+          <button
+            onClick={(e) => { e.stopPropagation(); openRSVP(); }}
+            className="font-futura font-medium uppercase w-full"
+            style={{
+              background: '#ffffff',
+              color: '#15161a',
+              border: '1px solid #5d5d5d',
+              borderRadius: '6px',
+              fontSize: '16px',
+              letterSpacing: '1.6px',
+              padding: '12px 20px',
+              marginTop: '24px',
+              marginBottom: '16px',
+              display: 'block',
+            }}
+          >
+            RSVP
+          </button>
+        )}
+
         {/* Action buttons */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '24px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: event.id === 'wedding' ? 0 : '24px' }}>
           <a
             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`}
             target="_blank"
@@ -1174,8 +1225,8 @@ export default function Home() {
         <img
           src="/assets/logo.svg"
           alt="Castlewave"
-          className="hero-logo-in"
-          style={{ width: 'clamp(280px, 50vw, 646px)', height: 'auto' }}
+          className={heroLogoAnimate ? 'hero-logo-in' : ''}
+          style={{ width: 'clamp(168px, 30vw, 388px)', height: 'auto' }}
         />
 
         <img
@@ -1198,43 +1249,47 @@ export default function Home() {
           className="font-ui"
           style={{
             fontWeight: 400,
-            fontSize: 'clamp(14px, 1.2vw, 18px)',
+            fontSize: '15px',
+            lineHeight: 1.8,
             color: '#ffffff',
             textAlign: 'center',
             maxWidth: 'clamp(320px, 60vw, 660px)',
+            marginTop: 'clamp(24px, 4vw, 48px)',
             marginBottom: 'clamp(20px, 3vw, 36px)',
           }}
           aria-live="polite"
         >
           {guest?.firstName
-            ? `${guest.firstName}${guest.plusOneName ? ` and ${guest.plusOneName}` : ''}, As our day fast approaches, we can’t wait to celebrate with you and, for those travelling, we can’t thank you enough for making the trip to Miami to be a part of our celebration.  Please continue to check back here periodically for updates or answers to questions that you may have.  The links below should have all the detailed information you need.`
+            ? `${guest.firstName}${guest.plusOneName ? ` and ${guest.plusOneName}` : ''}, as our day fast approaches, we can’t wait to celebrate with you and, for those travelling, we can’t thank you enough for making the trip to Miami to be a part of our celebration.  Please continue to check back here periodically for updates or answers to questions that you may have.  The links below should have all the detailed information you need.`
             : "We can't wait to celebrate with you in Miami! As the big day approaches, please check back here periodically for updates, and to confirm details.  The links below contain the information you need."}
         </p>
 
-        <button
-          onClick={openRSVP}
-          className="font-ui font-bold uppercase transition-opacity duration-150 hover:opacity-70 cursor-pointer"
-          style={{
-            background: '#ffffff',
-            color: '#15161a',
-            width: 'clamp(140px, 12vw, 201px)',
-            height: 'clamp(32px, 3vw, 38px)',
-            border: '1px solid #5d5d5d',
-            borderRadius: '6px',
-            fontSize: 'clamp(12px, 1vw, 16px)',
-            letterSpacing: '1.6px',
-            marginBottom: 'clamp(32px, 5vw, 64px)',
-          }}
-        >
-          RSVP
-        </button>
+        {!guest && (
+          <button
+            onClick={() => setVerifyModalOpen(true)}
+            className="font-futura font-medium uppercase transition-opacity duration-150 hover:opacity-70 cursor-pointer"
+            style={{
+              background: '#ffffff',
+              color: '#15161a',
+              width: 'clamp(140px, 12vw, 201px)',
+              height: 'clamp(32px, 3vw, 38px)',
+              border: '1px solid #5d5d5d',
+              borderRadius: '6px',
+              fontSize: 'clamp(12px, 1vw, 16px)',
+              letterSpacing: '1.6px',
+              marginBottom: 'clamp(32px, 5vw, 64px)',
+            }}
+          >
+            Verify
+          </button>
+        )}
       </section>
 
       {/* CTA Buttons */}
       <section className="flex flex-col items-center px-6 pt-10 pb-20">
         {/* Outer wrapper: full-width on mobile, shrinks to button row width on desktop */}
         <div className="flex flex-col w-full md:w-fit md:mx-auto">
-          <div ref={buttonRowRef} className="flex flex-col md:flex-row gap-4 justify-center">
+          <div ref={buttonRowRef} className="flex flex-col md:flex-row gap-4 justify-center items-center flex-wrap">
             {ctaButtons.map(({ label, onClick, href, hidden }) => {
               const sharedStyle = {
                 background: '#16181e',
@@ -1245,7 +1300,7 @@ export default function Home() {
                 border: '1px solid #5d5d5d',
                 ...(hidden ? { display: 'none' } : {}),
               };
-              const sharedClass = "font-ui flex items-center justify-center text-white font-bold uppercase text-sm px-8 transition-opacity duration-150 hover:opacity-70 cursor-pointer";
+              const sharedClass = "font-futura font-medium flex items-center justify-center text-white uppercase text-sm px-8 transition-opacity duration-150 hover:opacity-70 cursor-pointer";
               return href ? (
                 <Link key={label} href={href} style={sharedStyle} className={sharedClass}>
                   {label}
@@ -1918,87 +1973,95 @@ export default function Home() {
       {/* Guest Verification Modal */}
       {verifyModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4"
           style={{
             background: 'rgba(0,0,0,0.92)',
             animation: verifyModalClosing ? 'fadeOut 250ms ease-out forwards' : 'fadeIn 250ms ease-out forwards',
           }}
         >
-          <div
+          <h2
+            className="font-mono"
+            style={{ fontWeight: 400, color: '#ffffff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '2px', textAlign: 'center' }}
+          >
+            Welcome, please type your name
+          </h2>
+
+          <input
+            type="text"
+            value={verifyInput}
+            onChange={(e) => setVerifyInput(e.target.value)}
+            className="font-futura"
             style={{
-              maxWidth: '480px',
-              width: '90vw',
-              background: '#191b25',
-              borderRadius: '10px',
-              boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
-              padding: '40px 32px',
+              marginTop: '20px',
+              width: 'clamp(260px, 40vw, 400px)',
+              background: 'none',
+              border: 'none',
+              borderBottom: '1px solid rgba(255,255,255,0.4)',
+              fontWeight: 300,
+              color: '#ffffff',
+              fontSize: '24px',
+              textTransform: 'uppercase',
+              letterSpacing: '3px',
+              textAlign: 'center',
+              outline: 'none',
+              padding: '8px 0',
+            }}
+          />
+
+          {verifyMatch && (
+            <div
+              onClick={() => selectVerifyMatch(verifyMatch)}
+              className="font-futura font-medium"
+              style={{
+                marginTop: '16px',
+                color: '#ffffff',
+                fontSize: '18px',
+                textTransform: 'uppercase',
+                textAlign: 'center',
+                cursor: 'pointer',
+                textDecoration: verifyMatchHovered ? 'underline' : 'none',
+              }}
+              onMouseEnter={() => setVerifyMatchHovered(true)}
+              onMouseLeave={() => setVerifyMatchHovered(false)}
+            >
+              {verifyMatch.firstName} {verifyMatch.lastName}
+            </div>
+          )}
+
+          <a
+            href="mailto:rsvp@nichbranding.com?subject=Guest%20Lookup%20Request"
+            className="font-futura"
+            style={{
+              marginTop: '32px',
+              color: '#ffffff',
+              fontWeight: 300,
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              cursor: 'pointer',
+              textDecoration: 'none',
             }}
           >
-            <h2
-              className="font-ui"
-              style={{ fontWeight: 600, color: '#ffffff', fontSize: '22px', textAlign: 'center', marginBottom: '24px' }}
-            >
-              Welcome, please enter your name.
-            </h2>
+            Can&apos;t find your name?
+          </a>
 
-            <input
-              type="text"
-              value={verifyInput}
-              onChange={(e) => setVerifyInput(e.target.value)}
-              onFocus={() => setVerifyInputFocused(true)}
-              onBlur={() => setVerifyInputFocused(false)}
-              placeholder="Start typing your name..."
-              className="font-ui"
-              style={{
-                width: '100%',
-                background: 'rgba(255,255,255,0.06)',
-                border: `1px solid ${verifyInputFocused ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)'}`,
-                borderRadius: '6px',
-                padding: '12px 16px',
-                color: '#ffffff',
-                fontSize: '16px',
-                outline: 'none',
-              }}
-            />
-
-            {verifyMatch && (
-              <div
-                onClick={() => selectVerifyMatch(verifyMatch)}
-                onMouseEnter={() => setVerifyMatchHovered(true)}
-                onMouseLeave={() => setVerifyMatchHovered(false)}
-                className="font-ui"
-                style={{
-                  marginTop: '8px',
-                  padding: '12px 16px',
-                  background: verifyMatchHovered ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.08)',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(212,168,83,0.4)',
-                  color: '#ffffff',
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background 150ms ease',
-                }}
-              >
-                {verifyMatch.firstName} {verifyMatch.lastName}
-              </div>
-            )}
-
-            <div
-              className="font-mono"
-              style={{ marginTop: '24px', fontSize: '11px', color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}
-            >
-              Can&apos;t find your name?{' '}
-              <a href="mailto:rsvp@nichbranding.com" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}>
-                Contact us
-              </a>
-              <div style={{ marginTop: '8px' }}>
-                <span role="button" onClick={skipVerify} style={{ cursor: 'pointer', textDecoration: 'underline' }}>
-                  Continue without personalization
-                </span>
-              </div>
-            </div>
-          </div>
+          <span
+            role="button"
+            onClick={skipVerify}
+            className="font-futura"
+            style={{
+              marginTop: '12px',
+              color: '#ffffff',
+              fontWeight: 300,
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              cursor: 'pointer',
+              opacity: 0.5,
+            }}
+          >
+            Continue
+          </span>
         </div>
       )}
 

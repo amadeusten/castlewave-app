@@ -48,6 +48,42 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'FuturaPT';
+  src: url('/fonts/FuturaPTBook.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'FuturaPT';
+  src: url('/fonts/FuturaPTMedium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'FuturaPT';
+  src: url('/fonts/FuturaPTMedium Oblique.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'FuturaPT';
+  src: url('/fonts/FuturaPTHeavy.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'FuturaPT';
+  src: url('/fonts/FuturaPTHeavy Oblique.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 :root {
   --background: #191b25;
   --foreground: #ffffff;
@@ -59,6 +95,7 @@
   --font-display: 'Miedinger', sans-serif;
   --font-ui: 'OpenSauceOne', sans-serif;
   --font-mono: 'SpaceMono', monospace;
+  --font-futura: 'FuturaPT', sans-serif;
 }
 
 body {
