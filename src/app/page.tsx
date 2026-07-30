@@ -727,6 +727,30 @@ export default function Home() {
           .then((properties: WtsProperty[]) => {
             setWtsProperties(properties);
 
+            // ── Permanent Arlo highlight + routes to event venues ────────────────
+            const arloProperty = properties.find(p => p.name.toLowerCase().includes('arlo'));
+            if (arloProperty && arloProperty.lat != null && arloProperty.lng != null && wtsMap.current) {
+              const arloLat = arloProperty.lat;
+              const arloLng = arloProperty.lng;
+
+              const r = 0.003;
+              const ring = roundedRectGeoJSON(arloLng - r, arloLat - r * 0.8, arloLng + r, arloLat + r * 0.8, r * 0.3);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              wtsMap.current.addSource('arlo-highlight', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } } } as any);
+              wtsMap.current.addLayer({ id: 'arlo-highlight-line', type: 'line', source: 'arlo-highlight', paint: { 'line-color': '#D4A853', 'line-width': 2, 'line-dasharray': [2, 2] } });
+
+              const eventVenues: { id: string; coords: [number, number] }[] = [
+                { id: 'arlo-route-wedding', coords: [-80.1771, 25.8397] },
+                { id: 'arlo-route-dinner', coords: [-80.2010, 25.7934] },
+                { id: 'arlo-route-pizza', coords: [-80.1930, 25.8601] },
+              ];
+              eventVenues.forEach(({ id, coords }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                wtsMap.current!.addSource(id, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[arloLng, arloLat], coords] } } } as any);
+                wtsMap.current!.addLayer({ id, type: 'line', source: id, paint: { 'line-color': '#D4A853', 'line-width': 1.5, 'line-dasharray': [2, 3], 'line-opacity': 0.7 } });
+              });
+            }
+
             const bounds = new mapboxgl.LngLatBounds();
             let hasMarkers = false;
             properties.forEach(p => {
