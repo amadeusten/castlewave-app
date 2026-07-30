@@ -985,7 +985,8 @@ export default function Home() {
   const displayedProperties = (wtsSelectedTypes.size === 0
     ? categoryFilteredProperties
     : categoryFilteredProperties.filter(p => wtsSelectedTypes.has(p.type))
-  ).filter(p => CARD_GRID_TYPES.has(p.type));
+  ).filter(p => CARD_GRID_TYPES.has(p.type))
+    .sort((a, b) => Number(b.name.toLowerCase().includes('arlo')) - Number(a.name.toLowerCase().includes('arlo')));
 
   const renderEventBody = (event: AccordionEvent) => {
     const isDayOf = todayYear === event.eventYear && todayMonth === event.eventMonth && todayDay === event.eventDay;
