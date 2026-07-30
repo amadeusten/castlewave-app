@@ -634,8 +634,8 @@ export default function Home() {
       wtsMap.current = new mapboxgl.Map({
         container: wtsMapContainer.current,
         style: 'mapbox://styles/mapbox/light-v11',
-        center: [-80.1918, 25.7617],
-        zoom: 11,
+        center: [-80.1750, 25.8200],
+        zoom: 11.8,
       });
 
       wtsMap.current.on('load', () => {
@@ -769,7 +769,7 @@ export default function Home() {
                 if (!wtsMap.current) return;
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 wtsMap.current.addSource(id, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry } } as any);
-                wtsMap.current.addLayer({ id, type: 'line', source: id, paint: { 'line-color': '#000000', 'line-width': 1.5, 'line-dasharray': [2, 3], 'line-opacity': 0.7 } });
+                wtsMap.current.addLayer({ id, type: 'line', source: id, paint: { 'line-color': '#D4A853', 'line-width': 1.5, 'line-dasharray': [2, 3], 'line-opacity': 0.7 } });
                 new mapboxgl.Popup({ closeButton: false, anchor: 'bottom', offset: [0, -6], className: 'compare-pill' })
                   .setLngLat(mid).setHTML(`<div style="${WTS_PILL_STYLE}">${label}</div>`).addTo(wtsMap.current);
               };
