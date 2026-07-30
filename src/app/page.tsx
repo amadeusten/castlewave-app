@@ -737,18 +737,44 @@ export default function Home() {
               const ring = roundedRectGeoJSON(arloLng - r, arloLat - r * 0.8, arloLng + r, arloLat + r * 0.8, r * 0.3);
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               wtsMap.current.addSource('arlo-highlight', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } } } as any);
-              wtsMap.current.addLayer({ id: 'arlo-highlight-line', type: 'line', source: 'arlo-highlight', paint: { 'line-color': '#D4A853', 'line-width': 2, 'line-dasharray': [2, 2] } });
+              wtsMap.current.addLayer({ id: 'arlo-highlight-line', type: 'line', source: 'arlo-highlight', paint: { 'line-color': '#000000', 'line-width': 2, 'line-dasharray': [2, 2] } });
 
               const eventVenues: { id: string; coords: [number, number] }[] = [
                 { id: 'arlo-route-wedding', coords: [-80.1771, 25.8397] },
                 { id: 'arlo-route-dinner', coords: [-80.2010, 25.7934] },
                 { id: 'arlo-route-pizza', coords: [-80.1930, 25.8601] },
               ];
-              eventVenues.forEach(({ id, coords }) => {
+
+              const drawArloRoute = async (id: string, dest: [number, number]) => {
+                const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
+                const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${arloLng},${arloLat};${dest[0]},${dest[1]}?geometries=geojson&access_token=${token}`;
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                wtsMap.current!.addSource(id, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[arloLng, arloLat], coords] } } } as any);
-                wtsMap.current!.addLayer({ id, type: 'line', source: id, paint: { 'line-color': '#D4A853', 'line-width': 1.5, 'line-dasharray': [2, 3], 'line-opacity': 0.7 } });
-              });
+                let geometry: any = { type: 'LineString', coordinates: [[arloLng, arloLat], dest] };
+                let mid: [number, number] = [(arloLng + dest[0]) / 2, (arloLat + dest[1]) / 2];
+                let label: string;
+                try {
+                  const res = await fetch(url);
+                  if (!res.ok) throw new Error();
+                  const data = await res.json();
+                  const route = data.routes?.[0];
+                  if (!route) throw new Error();
+                  geometry = route.geometry;
+                  const coords: [number, number][] = route.geometry.coordinates;
+                  mid = coords[Math.floor(coords.length / 2)] ?? mid;
+                  label = `${Math.round(route.duration / 60)} min · ${(route.distance / 1609.34).toFixed(1)} mi`;
+                } catch {
+                  const dist = haversineMiles(arloLat, arloLng, dest[1], dest[0]);
+                  label = `${dist.toFixed(1)} mi (straight line)`;
+                }
+                if (!wtsMap.current) return;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                wtsMap.current.addSource(id, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry } } as any);
+                wtsMap.current.addLayer({ id, type: 'line', source: id, paint: { 'line-color': '#000000', 'line-width': 1.5, 'line-dasharray': [2, 3], 'line-opacity': 0.7 } });
+                new mapboxgl.Popup({ closeButton: false, anchor: 'bottom', offset: [0, -6], className: 'compare-pill' })
+                  .setLngLat(mid).setHTML(`<div style="${WTS_PILL_STYLE}">${label}</div>`).addTo(wtsMap.current);
+              };
+
+              eventVenues.forEach(({ id, coords }) => { drawArloRoute(id, coords); });
             }
 
             const bounds = new mapboxgl.LngLatBounds();
